@@ -1,0 +1,32 @@
+/* Reset các kiểu mặc định của trình duyệt */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Đặt kiểu chữ mặc định cho toàn bộ ứng dụng */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  color: #333;
+}
+
+/* Định dạng cho các thẻ tiêu đề */
+h1, h2, h3 {
+  font-weight: bold;
+  color: #333;
+}
+
+/* Các kiểu CSS khác cho ứng dụng */
+button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
