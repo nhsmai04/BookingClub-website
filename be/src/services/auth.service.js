@@ -5,7 +5,7 @@ import crypto from "crypto";
 import { sendMail } from "./email.service.js";
 
 const getApiBaseUrl = () => (process.env.API_BASE_URL || "http://localhost:5001").replace(/\/$/, "");
-const getClientUrl = () => (process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
+const getClientUrl = () => (process.env.CLIENT_URL || "http://localhost:3000").replace(/\/$/, "");
 const verifyTokenExpiresMinutes = Number(process.env.EMAIL_VERIFICATION_EXPIRE_MINUTES || 60);
 const resetTokenExpiresMinutes = Number(process.env.PASSWORD_RESET_EXPIRE_MINUTES || 30);
 
