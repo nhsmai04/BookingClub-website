@@ -5,6 +5,7 @@ import routes from './routes/route.js';
 import cors from 'cors';
 import sportComplexRouter from './routes/sport_complex.route.js';
 import cookieParser from "cookie-parser";
+import { securityMiddleware, cspReportHandler } from './middlewares/security.middleware.js';
 
 dotenv.config();
 
@@ -38,10 +39,12 @@ console.log(process.env.MONGO_URI);
 connectDB();
 app.use(cookieParser());
 app.use(express.json());
+app.use(securityMiddleware); // Áp dụng security headers và CSP
 
 app.get('/', (req, res) => {
     res.send('Hello, World!');
 });
+app.post('/api/v1/security/csp-report', cspReportHandler);
 app.use('/api/v1', routes);
 app.use('/api/v1/sportcomplex', sportComplexRouter);
 
