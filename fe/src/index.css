@@ -5,6 +5,29 @@
   box-sizing: border-box;
 }
 
+:root {
+  --font-sans: "Lexend", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Manrope", sans-serif;
+  
+  --color-primary: #00152a;
+  --color-secondary: #4f6072;
+  --color-surface: #f7f9ff;
+  --color-accent: #d1e3f8;
+  --color-white: #ffffff;
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-emerald-100: #d1fae5;
+  --color-emerald-700: #047857;
+  --color-blue-100: #dbeafe;
+  --color-blue-700: #1d4ed8;
+  --color-red-500: #ef4444;
+}
+
+
+
 /* Đặt kiểu chữ mặc định cho toàn bộ ứng dụng */
 body {
   font-family: Arial, sans-serif;
