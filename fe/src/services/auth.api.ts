@@ -50,7 +50,7 @@ interface LogoutResponse {
 }
 
 const logoutApi = (): Promise<LogoutResponse> => {
-  localStorage.removeItem("isLoggedIn");
+  
   return axios.post("/api/v1/logout");
 };
 

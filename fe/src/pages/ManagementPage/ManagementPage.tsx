@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   LayoutDashboard, 
   Ticket, 
@@ -21,29 +21,143 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from "framer-motion";
 import './ManagementPage.css';
-
-interface Booking {
-  id: string;
-  sport: string;
-  venue: string;
-  court: string;
-  date: string;
-  time: string;
-  status: 'Confirmed' | 'Completed' | 'Cancelled';
-  price: string;
-}
-
-const bookings: Booking[] = [
-  { id: '1', sport: 'Tennis', venue: 'Grand Slam Arena', court: 'Court #4 (Clay)', date: 'Oct 24, 2023', time: '10:00 AM - 12:00 PM', status: 'Confirmed', price: '$45.00' },
-  { id: '2', sport: 'Basketball', venue: 'Urban Hoops Center', court: 'Full Court B', date: 'Oct 22, 2023', time: '06:00 PM - 07:30 PM', status: 'Completed', price: '$30.00' },
-  { id: '3', sport: 'Futsal', venue: 'Elite Sports Club', court: 'Indoor Pitch 2', date: 'Oct 18, 2023', time: '08:00 PM - 10:00 PM', status: 'Completed', price: '$60.00' },
-  { id: '4', sport: 'Swimming', venue: 'Aqua Splash Center', court: 'Lane 3 (Lap Pool)', date: 'Oct 15, 2023', time: '07:00 AM - 08:00 AM', status: 'Cancelled', price: '$15.00' },
-];
-
-
+import type { Booking } from '../../services/booking.api';
+import {  getBookingOfUserApi } from '../../services/booking.api';
+import { useAuth } from "../../contexts/authContext";
+import { logoutApi } from "../../services/auth.api";
+import { useNavigate } from "react-router";
+import  Modal  from '../../components/common/Modal/Modal.tsx';
+import { ReviewForm } from '../../features/Review/ReviewForm.tsx';
+import type { CreateReviewPayload } from '../../services/review.api';
+import type { GetReviewOfBookingResponse } from '../../services/booking.api';
+import { createReviewApi} from '../../services/review.api';
+import { getReviewOfBookingApi } from '../../services/booking.api';
 const ManagementPage = () => {
+  const { setUser } = useAuth();
+  const navigate = useNavigate();
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [selectedReview, setSelectedReview] = useState<GetReviewOfBookingResponse | null>(null);
   const [activeTab, setActiveTab] = useState('My Bookings');
   const [filter, setFilter] = useState('All');
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 5,
+    total: 0,
+    totalPages: 1,
+  });
+  const [bookings, setBookings] = useState<Booking[]>([]);
+
+  useEffect(()  => {
+    fetchBookings();
+  }, [pagination.page]);
+
+  const fetchBookings = async () => {
+    try {
+      const result = await getBookingOfUserApi(pagination.page, pagination.limit);
+      
+      setBookings(result.data || [] );
+
+      setPagination(prev => ({
+        ...prev,
+        total: result.total,
+        totalPages: result.totalPages,
+      }));
+    } catch (error) {
+      console.error("Failed to fetch bookings:", error);
+    }
+  };
+
+  const goPrevPage = () => {
+    if(pagination.page === 1) return;
+    
+    setPagination(prev => ({
+      ...prev,
+      page: prev.page - 1,
+    }));
+  };
+
+  const goToPage = (page: number) => {
+    setPagination(prev => ({
+      ...prev,
+      page,
+    }));
+  };
+
+  const goNextPage = () => {
+    if(pagination.page === pagination.totalPages) return;
+    setPagination(prev => ({
+      ...prev,
+      page: prev.page + 1,
+    }));
+  };
+
+  // Ham logout
+  const handleLogout = async () => {
+  // Implementation for logout
+  try{
+    await logoutApi();
+    setUser(null);
+    alert("Đăng xuất thành công");
+    navigate("/login");
+  }catch(error) {
+    console.error("Logout failed:", error);
+    setUser(null); // Dù logout thất bại, vẫn setUser về null để cập nhật UI
+  }
+};
+
+  // Ham mo modal review
+  const handleOpenReviewModal = async (booking: Booking) => {
+    try{
+    const reviewData = await getReviewOfBookingApi(booking._id);
+    console.log("Fetched review data:", reviewData);
+    setSelectedReview(reviewData);
+    setSelectedBooking(booking);
+    setIsReviewModalOpen(true);
+    }catch(error) {
+      console.error("Failed to fetch review for booking:", error);
+      setSelectedReview(null); // Nếu có lỗi, reset selectedReview để tránh hiển thị dữ liệu cũ
+    }
+  };
+
+  // Ham dong modal review
+
+  const handleCloseReviewModal = () => {
+    setSelectedBooking(null);
+    setIsReviewModalOpen(false);
+    setSelectedReview(null); // Reset review khi đóng modal để tránh hiển thị dữ liệu cũ khi mở modal khác
+  };
+
+  // Ham submit review
+  const handleSubmitReview = async (data: { rating: number; comment: string }) => {
+    try {
+      if (!selectedBooking) {
+        alert("No booking selected for review!");
+        return;
+      }
+      // Implementation for submitting review
+      const payload: CreateReviewPayload = {
+        booking_id: selectedBooking?._id || "",
+        rating: data.rating,
+        comment: data.comment,
+      };
+      await createReviewApi(payload);
+      alert("Review submitted successfully");
+      handleCloseReviewModal();
+    } catch (error) {
+      console.error("Failed to submit review:", error);
+    }
+  };
+
+  // Ham thanh toan
+  const handlePayment = async () => {
+    try {
+      // Implementation for payment
+    } catch (error) {
+      console.error("Payment failed:", error);
+    }
+  };
+  
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard' },
@@ -76,7 +190,7 @@ const ManagementPage = () => {
           ))}
         </nav>
 
-        <button className="sign-out-btn">
+        <button className="sign-out-btn" onClick={() => handleLogout()}>
           <LogOut size={20} />
           <span className="nav-label">Đăng xuất</span>
         </button>
@@ -84,6 +198,18 @@ const ManagementPage = () => {
 
         {/* Main Content Area */}
         <main className="main-content">
+          <Modal isOpen={isReviewModalOpen} onClose={handleCloseReviewModal}>
+            {selectedBooking && (
+              <ReviewForm 
+                key={selectedReview?.review_id || "new-review"} // Đảm bảo form reset khi booking khác được chọn
+                courtName={selectedBooking?.complex_id?.name || ""} 
+                onCancel={handleCloseReviewModal} 
+                onSubmit={handleSubmitReview}
+                data = {selectedReview}
+              />
+            )}
+          </Modal>
+
             {/* Top App Bar */}
         <header className="top-header">
           <div className="search-container">
@@ -231,66 +357,128 @@ const ManagementPage = () => {
                 </tr>
               </thead>
               <tbody>
-                <AnimatePresence>
-                  {bookings.map((booking, idx) => (
-                    <motion.tr 
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.1 }}
-                      key={booking.id} 
-                    >
-                      <td className="font-semibold">{booking.sport}</td>
-                      <td>
-                        <p className="font-semibold text-sm">{booking.venue}</p>
-                        <p className="text-xs">{booking.court}</p>
-                      </td>
-                      <td>
-                        <p className="font-semibold text-sm">{booking.date}</p>
-                        <p className="text-xs">{booking.time}</p>
-                      </td>
-                      <td>
-                        <span className={`status-pill ${
-                          booking.status === 'Confirmed' ? 'status-confirmed' :
-                          booking.status === 'Completed' ? 'status-completed' :
-                          'status-cancelled'
-                        }`}>
-                          {booking.status}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={booking.status === 'Cancelled' ? 'price-canceled' : 'price-active'}>
-                          {booking.price}
-                        </span>
-                      </td>
-                      <td className="text-right">
-                        <div className="row-actions">
-                          <button className="action-eye-btn">
-                            <Eye size={16} />
-                          </button>
-                          <button className="rebook-btn">
-                            Rebook
-                          </button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </AnimatePresence>
-              </tbody>
+  <AnimatePresence>
+    {bookings?.map((booking, idx) => (
+      <motion.tr
+        key={booking._id}
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: idx * 0.1 }}
+      >
+        {/* Sport */}
+        <td className="font-semibold">
+          Unknown
+        </td>
+
+        {/* Tên sân */}
+        <td>
+          <p className="font-semibold text-sm">
+            {booking.complex_id?.name}
+          </p>
+
+          <p className="text-xs">
+            Booking ID: {booking._id}
+          </p>
+        </td>
+
+        {/* Ngày đặt */}
+        <td>
+          <p className="font-semibold text-sm">
+            {new Date(booking.booking_date).toLocaleDateString("vi-VN")}
+          </p>
+        </td>
+
+        {/* Status */}
+        <td>
+          <span
+            className={`status-pill ${
+              booking.status === "confirmed"
+                ? "status-confirmed"
+                : booking.status === "completed"
+                ? "status-completed"
+                : booking.status === "pending"
+                ? "status-pending"
+                : "status-cancelled"
+            }`}
+          >
+            {booking.status}
+          </span>
+        </td>
+
+        {/* Price */}
+        <td>
+          <span
+            className={
+              booking.status === "cancelled"
+                ? "price-canceled"
+                : "price-active"
+            }
+          >
+            {Number(
+              booking.total_price.$numberDecimal
+            ).toLocaleString("vi-VN")}
+            đ
+          </span>
+        </td>
+
+        {/* Actions */}
+        <td className="text-right">
+          <div className="row-actions">
+            <button className="action-eye-btn">
+              <Eye size={16} />
+            </button>
+
+          {
+            booking.status === "completed" ? (
+              <button className="action-review-btn" onClick={() => handleOpenReviewModal(booking)}>
+                Review
+              </button>
+            ) : booking.status === "pending" ? (
+              <button className="action-payment-btn " onClick={() => handlePayment}>
+                Make Payment
+              </button>
+            ) : null
+          }
+            
+          </div>
+        </td>
+      </motion.tr>
+    ))}
+  </AnimatePresence>
+</tbody>
             </table>
           </div>
           {/* Pagination */}
           <div className="pagination">
-            <p className="text-xs font-medium">Showing 4 of 28 bookings</p>
+            <p className='text-xs font-medium'>
+              Showing {bookings.length} of {pagination.total} bookings
+            </p>
             <div className="pagination-controls">
-              <button className="page-arrow">
-                <ChevronLeft size={16} />
-              </button>
-              <button className="page-num page-num-active">1</button>
-              <button className="page-num page-num-inactive">2</button>
-              <button className="page-num page-num-inactive">3</button>
-              <button className="page-arrow">
-                <ChevronRight size={16} />
-              </button>
+                  <button 
+                  className="page-arrow" 
+                  disabled={pagination.page === 1}
+                  onClick={goPrevPage}
+                >
+                    <ChevronLeft size={16} />
+                  </button>
+
+                  {Array.from({ length: pagination.totalPages }).map((_,idx) => (
+                    <button
+                      key={idx + 1}
+                      className={`page-num ${pagination.page === idx + 1 ? 'page-num-active' : 'page-num-inactive'}`}
+                      onClick={() => goToPage(idx + 1)}
+                    >
+                      {idx + 1}
+                    </button>
+                  ))}
+
+                  <button 
+                    className="page-arrow"
+                    disabled={pagination.page === pagination.totalPages}
+                    onClick={goNextPage}
+                  >
+                    <ChevronRight size={16} />
+                  </button>
             </div>
           </div>
         </section>

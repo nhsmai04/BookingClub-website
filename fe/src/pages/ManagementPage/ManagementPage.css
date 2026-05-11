@@ -493,7 +493,8 @@ th {
 }
 
 .text-right {
-  text-align: right;
+  text-align: left;
+  
 }
 
 tbody tr {
@@ -547,7 +548,7 @@ td {
 .row-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: left;
   gap: 8px;
   opacity: 0;
   transition: opacity 0.3s;

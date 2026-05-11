@@ -18,7 +18,7 @@ import {
   getReviewById,
   updateReview,
   deleteReview,
-  getReviewsWithStats
+  getReviewsWithStats,
 } from "../controllers/review.controller.js";
 import { validate } from "../middlewares/validate.middleware.js";
 import {
@@ -54,5 +54,6 @@ router.get("/reviews/with-stats", getReviewsWithStats);
 router.get("/reviews/:id", getReviewById);
 router.put("/reviews/:id", validate(updateReviewSchema), updateReview);
 router.delete("/reviews/:id", deleteReview);
+
 
 export default router;

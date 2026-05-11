@@ -4,7 +4,8 @@ import {
   getReviewByIdService,
   updateReviewService,
   deleteReviewService,
-  getReviewsWithStatsService
+  getReviewsWithStatsService,
+  getDetailReviewByUserIdService
 } from "../services/review.service.js";
 
 // CREATE
@@ -83,3 +84,4 @@ export const getReviewsWithStats = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+

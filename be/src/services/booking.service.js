@@ -246,3 +246,17 @@ export const completeFinishedBookings = async () => {
     }
   }
 };
+
+export const getBookingOfUser = async (userId, page, limit) => {
+  const skip = (page - 1) * limit;
+  const total = await Booking.countDocuments({ user_id: userId });
+  const bookings = await Booking.find({ user_id: userId })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .populate("complex_id", "name")
+    .select("_id complex_id booking_date total_price  status total_price")
+    .lean();
+    
+  return { bookings, total };
+};

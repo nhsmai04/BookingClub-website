@@ -94,7 +94,7 @@ export const registerService = async ({ name, phone, password, email }) => {
 };
 
 export const loginService = async ({ phone, password }) => {
-  const user = await User.findOne({ phone });
+  const user = await User.findOne({ phone: phone });
 
   if (!user) throw new Error("Wrong email or password");
 
@@ -211,8 +211,20 @@ export const resendVerificationEmailService = async ({ email }) => {
 };
 
 export const forgotPasswordService = async ({ email }) => {
-  const user = await User.findOne({ email });
+  const users = await User.find().lean();
 
+users.forEach((u) => {
+  console.log({
+    email: u.email,
+    type: typeof u.email,
+    json: JSON.stringify(u.email),
+    length: u.email?.length
+  });
+});
+  
+  console.log("Forgot password request for email:", email);
+  const user = await User.findOne({ email });
+  console.log("User found:", user);
   if (!user) {
     throw new Error("User not found");
   }

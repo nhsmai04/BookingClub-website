@@ -150,3 +150,14 @@ export const getReviewsWithStatsService = async (query) => {
         reviews,
     };
 };
+
+// GET DETAIL REVIEW BY USER ID (cho phần quản lý của user)
+export const getDetailReviewByUserIdService = async ( user_id, booking_id ) => {
+  const filter = {
+    user_id,
+    ...(booking_id && { booking_id }),
+  };
+
+  return await Review.find(filter)
+    .select("rating comment");
+};
