@@ -3,7 +3,7 @@
   {
     "_id": "65f2a1a1a1a1a1a1a1a1a101",
     "name": "Le Van C",
-    "phone": "{ \"$ne\" : null }",
+    "phone": "0902222331",
     "password": "$2b$10$hashedpassword3",
     "email": "user1@example.com",
     "email_verified": true,

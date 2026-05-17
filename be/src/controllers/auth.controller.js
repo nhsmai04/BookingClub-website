@@ -9,7 +9,7 @@ import {
 } from "../services/auth.service.js";
 import { validatePassword } from "../validators/validate.js";
 import cookieUtils from "../utils/cookie.js";
-
+import {validateString} from "../utils/sanitizer.js";
 const isProduction = process.env.NODE_ENV === "production";
 
 const getTokenFromRequest = (req) => req.query.token || req.body.token;
@@ -49,8 +49,9 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { phone, password } = req.body;
-
-    const rs = await loginService({ phone, password });
+    const validatedPhone = validateString(phone, 'phone');
+    const validatedPassword = validateString(password, 'password');
+    const rs = await loginService({ phone: validatedPhone, password: validatedPassword });
 
     await cookieUtils.setAuthCookies(res, String(rs.user._id), rs.access_token, rs.refresh_token);
 
