@@ -633,4 +633,104 @@ export const getFeaturedCourtsService = async ({ tab = "all", userId = null } = 
   };
 };
 
-export { getSportComplexDetailsService, searchSportComplexService, getSportComplexByNearbyLocationService };
+const getAllSportComplexService = async (
+  page = 1,
+  limit = 10
+) => {
+    const pipeline = [];
+
+    // Lookup loại sân
+    pipeline.push({
+        $lookup: {
+            from: "fieldtypeconfigs",
+            localField: "_id",
+            foreignField: "complex_id",
+            as: "field_configs"
+        }
+    });
+
+    // Lookup ảnh
+    pipeline.push({
+        $lookup: {
+            from: FieldImage.collection.name,
+            let: { complexId: "$_id" },
+            pipeline: [
+                {
+                    $match: {
+                        $expr: {
+                            $eq: [
+                                "$complex_id",
+                                "$$complexId"
+                            ]
+                        }
+                    }
+                },
+                {
+                    $sort: {
+                        is_primary: -1,
+                        created_at: 1
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        image_url: 1,
+                        image_type: 1,
+                        is_primary: 1,
+                        alt_text: 1
+                    }
+                }
+            ],
+            as: "fieldImages"
+        }
+    });
+
+    // Pagination + metadata
+    pipeline.push({
+        $facet: {
+            metadata: [
+                {
+                    $count: "total"
+                }
+            ],
+            data: [
+                {
+                    $skip: (page - 1) * limit
+                },
+                {
+                    $limit: limit
+                },
+                {
+                    $project: {
+                        field_configs: 0,
+                        created_at: 0
+                    }
+                }
+            ]
+        }
+    });
+
+    const result = await SportComplex.aggregate(
+        pipeline
+    );
+
+    const data = result[0].data;
+    const totalItems =
+        result[0].metadata[0]?.total || 0;
+
+    const totalPages = Math.ceil(
+        totalItems / limit
+    );
+
+    return {
+        sportComplexes: data,
+        pagination: {
+            totalItems,
+            totalPages,
+            currentPage: page,
+            limit
+        }
+    };
+};
+
+export { getSportComplexDetailsService, searchSportComplexService, getSportComplexByNearbyLocationService, getAllSportComplexService };

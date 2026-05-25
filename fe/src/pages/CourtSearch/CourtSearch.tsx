@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SearchBar from "../../components/common/SearchBar/SearchBar";
 import CourtSearchCard from "../../components/common/CourtSearchCard/CourtSearchCard";
 import Pagination from "../../components/common/Pagination/Pagination";
@@ -29,6 +29,9 @@ function CourtSearch() {
   const [totalPages, setTotalPages] = useState(0);
   const pageSize = 9;
   const navigate = useNavigate();
+  const [selectedCity, setSelectedCity] = useState("");
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [selectedSport, setSelectedSport] = useState("");
 
   const mergeUniqueCourts = (groups: CourtItem[][]) => {
     const map = new Map<string, CourtItem>();
@@ -49,25 +52,57 @@ function CourtSearch() {
     try {
       const normalizedKeyword = keyword.trim();
 
-      if (!normalizedKeyword) {
-        setResults([]);
-        setTotalPages(0);
-        setPage(1);
+      const hasFilter = selectedCity || selectedDistrict || selectedSport;
+
+      // Chỉ gọi all khi KHÔNG có gì
+      if (!normalizedKeyword && !hasFilter) {
+        const response: any =
+          await axios.get(
+            "/api/v1/sportcomplex/all",
+            {
+              params: {
+                page:
+                  targetPage,
+                limit:
+                  pageSize
+              }
+            }
+          );
+
+        setResults(
+          response.sportComplexes ||
+          []
+        );
+
+        setTotalPages(
+          response.pagination
+            ?.totalPages || 0
+        );
+
+        setPage(targetPage);
+
         return;
       }
 
-      const requestConfigs = [
-        { keyword: normalizedKeyword },
-        { city: normalizedKeyword },
-        { district: normalizedKeyword },
-        { fieldTypes: normalizedKeyword }
-      ];
+      //Khi có search
+      const requestConfigs =
+        normalizedKeyword
+          ? [
+            {
+              keyword:
+                normalizedKeyword
+            }
+          ]
+          : [{}];
 
       const responses = await Promise.all(
         requestConfigs.map((params) =>
           axios.get("/api/v1/sportcomplex/search", {
             params: {
               ...params,
+              city: selectedCity,
+              district: selectedDistrict,
+              fieldTypes: selectedSport,
               page: targetPage,
               limit: pageSize
             }
@@ -104,6 +139,10 @@ function CourtSearch() {
     await fetchCourts(query, newPage);
   };
 
+  useEffect(() => {
+    fetchCourts("", 1);
+  }, []);
+
   return (
     <main className="court-search-page">
       <header className="search-header">
@@ -126,8 +165,32 @@ function CourtSearch() {
       <SearchBar
         value={query}
         onChange={setQuery}
-        onSearch={handleSearch}
-        isLoading={isLoading}
+        onSearch={
+          handleSearch
+        }
+        isLoading={
+          isLoading
+        }
+
+        selectedCity={
+          selectedCity
+        }
+        selectedDistrict={
+          selectedDistrict
+        }
+        selectedSport={
+          selectedSport
+        }
+
+        onCityChange={
+          setSelectedCity
+        }
+        onDistrictChange={
+          setSelectedDistrict
+        }
+        onSportChange={
+          setSelectedSport
+        }
       />
 
       {error && (
