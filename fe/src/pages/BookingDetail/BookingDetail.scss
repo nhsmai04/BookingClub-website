@@ -1,6 +1,3 @@
-// ==========================================
-// 1. DESIGN TOKENS & VARIABLES
-// ==========================================
 $color-midnight: #00152a;
 $color-slate: #49607c;
 $color-ice-blue: #f7f9ff;
@@ -23,9 +20,6 @@ $t-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 $card-shadow: 0 4px 20px -2px rgba(0, 21, 42, 0.04), 0 2px 8px -1px rgba(0, 21, 42, 0.02);
 $hover-shadow: 0 10px 25px -5px rgba(0, 21, 42, 0.08), 0 4px 12px -2px rgba(0, 21, 42, 0.04);
 
-// ==========================================
-// 2. MIXINS
-// ==========================================
 @mixin card-layout {
   background-color: #ffffff;
   border-radius: 1rem;
@@ -55,23 +49,18 @@ $hover-shadow: 0 10px 25px -5px rgba(0, 21, 42, 0.08), 0 4px 12px -2px rgba(0, 2
   gap: 0.5rem;
 }
 
-// ==========================================
-// 3. MAIN STYLES
-// ==========================================
 .booking-detail-page {
   font-family: 'Lexend', ui-sans-serif, system-ui, sans-serif;
   color: $color-midnight;
   padding: 1.5rem;
-  max-width: 75rem; // ~1200px
+  max-width: 75rem;
   margin-left: auto;
   margin-right: auto;
 
-  // Cấu trúc khoảng cách xếp chồng (Stack Layout)
   .content-stack > * + * {
     margin-top: 1.5rem;
   }
 
-  // 3.1. Thanh điều hướng Header
   .detail-header {
     display: flex;
     justify-content: space-between;
@@ -114,7 +103,6 @@ $hover-shadow: 0 10px 25px -5px rgba(0, 21, 42, 0.08), 0 4px 12px -2px rgba(0, 2
     }
   }
 
-  // 3.2. Hệ thống Grid Layout (60% - 40%)
   .grid-layout-60-40 {
     display: grid;
     grid-template: none / 1fr;
@@ -126,9 +114,7 @@ $hover-shadow: 0 10px 25px -5px rgba(0, 21, 42, 0.08), 0 4px 12px -2px rgba(0, 2
     }
   }
 
-  // 3.3. Chi tiết cột trái (60%)
   .col-left-60 {
-    // Card thông tin cụm sân tổng quát
     .complex-summary-card {
       @include card-layout;
       
@@ -169,7 +155,6 @@ $hover-shadow: 0 10px 25px -5px rgba(0, 21, 42, 0.08), 0 4px 12px -2px rgba(0, 2
       }
     }
 
-    // Trạng thái đơn đặt (Status Pills)
     .status-pill {
       display: inline-flex;
       align-items: center;
@@ -187,7 +172,6 @@ $hover-shadow: 0 10px 25px -5px rgba(0, 21, 42, 0.08), 0 4px 12px -2px rgba(0, 2
       &.status-cancelled { background-color: $status-cancelled-bg; color: $status-cancelled; }
     }
 
-    // Danh sách tiện ích
     .amenities-section {
       margin-top: 1.25rem;
       padding-top: 1.25rem;
@@ -218,7 +202,6 @@ $hover-shadow: 0 10px 25px -5px rgba(0, 21, 42, 0.08), 0 4px 12px -2px rgba(0, 2
       }
     }
 
-    // Tiêu đề nhóm danh sách sân con
     .slots-container-header {
       @include flex-items-center;
       gap: 0.5rem;
@@ -229,7 +212,6 @@ $hover-shadow: 0 10px 25px -5px rgba(0, 21, 42, 0.08), 0 4px 12px -2px rgba(0, 2
       margin-bottom: 0;
     }
 
-    // Card chi tiết từng suất chơi (Premium Card)
     .slot-card-premium {
       @include card-layout;
       padding: 1.5rem;
@@ -323,7 +305,6 @@ $hover-shadow: 0 10px 25px -5px rgba(0, 21, 42, 0.08), 0 4px 12px -2px rgba(0, 2
         }
       }
 
-      // Khối ảnh Banner phủ màn mờ
       .slot-banner-image {
         position: relative;
         width: 100%;
@@ -379,10 +360,8 @@ $hover-shadow: 0 10px 25px -5px rgba(0, 21, 42, 0.08), 0 4px 12px -2px rgba(0, 2
     }
   }
 
-  // 3.4. Chi tiết cột phải (40%)
   .col-right-40 {
     
-    // Card Check-in chứa mã QR
     .checkin-qr-card {
       background-color: #1e1b4b;
       color: #ffffff;
@@ -441,9 +420,8 @@ $hover-shadow: 0 10px 25px -5px rgba(0, 21, 42, 0.08), 0 4px 12px -2px rgba(0, 2
     padding: 2rem 1.5rem;
     text-align: center;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.3);
-    border: 1px solid rgba(245, 158, 11, 0.2); // Viền vàng nhẹ nghệ thuật
+    border: 1px solid rgba(245, 158, 11, 0.2); 
 
-    // Khối Icon động phát sáng phát xung
     .warning-icon-animation {
       position: relative;
       width: 3.5rem;
@@ -485,7 +463,6 @@ $hover-shadow: 0 10px 25px -5px rgba(0, 21, 42, 0.08), 0 4px 12px -2px rgba(0, 2
       margin: 0 0 1.25rem 0;
     }
 
-    // Box đếm ngược/cảnh báo thời gian giữ chỗ
     .payment-alert-box {
       display: inline-flex;
       align-items: center;
@@ -507,7 +484,6 @@ $hover-shadow: 0 10px 25px -5px rgba(0, 21, 42, 0.08), 0 4px 12px -2px rgba(0, 2
       }
     }
 
-    // Nút bấm Premium siêu đẹp
     .btn-pay-now-premium {
       width: 100%;
       background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
@@ -539,11 +515,11 @@ $hover-shadow: 0 10px 25px -5px rgba(0, 21, 42, 0.08), 0 4px 12px -2px rgba(0, 2
       }
 
       &:hover .btn-arrow {
-        transform: translateX(4px); // Mũi tên dịch chuyển khi hover
+        transform: translateX(4px); 
       }
     }
   }
-    // Card hóa đơn thông tin thanh toán
+
     .billing-receipt-card {
       @include card-layout;
 
@@ -608,7 +584,6 @@ $hover-shadow: 0 10px 25px -5px rgba(0, 21, 42, 0.08), 0 4px 12px -2px rgba(0, 2
         }
       }
 
-      // Nhóm nút hành động hành vi người dùng
       .action-buttons {
         margin-top: 1.5rem;
         display: flex;
@@ -649,7 +624,6 @@ $hover-shadow: 0 10px 25px -5px rgba(0, 21, 42, 0.08), 0 4px 12px -2px rgba(0, 2
   }
 }
 
-// 4. ANIMATION LOADER (Nếu cần dùng xoay tròn)
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }

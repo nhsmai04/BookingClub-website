@@ -44,35 +44,6 @@ export const cancelBookingController = async (req, res) => {
     }
 };
 
-// req cho phần create booking (tui chưa nối với FE nên note tạm ở đây, pull rq sau tui xóa)
-// {
-//     "complex_id": "65f1a2b3c4d5e6f7a8b90123",
-//     "booking_date": "2026-05-07",
-//     "total_price": 725000,
-//     "booking_details": [
-//         {
-//             "sub_field_id": "65f1b1b1b1b1b1b1b1b1b106",
-//             "play_date": "2026-05-08",
-//             "startTime": "17:30",
-//             "endTime": "18:30",
-//             "services": [
-//                 {
-//                     "id": "referee",
-//                     "name": "Thuê trọng tài",
-//                     "price": 200000
-//                 }
-//             ]
-//         },
-//         {
-//             "sub_field_id": "65f1b1b1b1b1b1b1b1b1b105",
-//             "play_date": "2026-05-08",
-//             "startTime": "18:00",
-//             "endTime": "19:00",
-//             "services": []
-//         }
-//     ]
-// }
-
 export const getBookingOfUserController = async (req, res) => {
     try {
         const user_id = req.user.id;
@@ -126,7 +97,6 @@ export const getBookingDetailController = async (req, res) => {
         const user_id = req.user.id;
         const bookingId = req.params.bookingId;
         const bookingDetail = await getBookingDetailService(user_id, bookingId);
-        console.log("Dữ liệu chi tiết booking được trả về từ service:", bookingDetail);
         return res.status(200).json(bookingDetail);
     }catch (error) {
         return res.status(400).json({

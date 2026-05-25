@@ -21,7 +21,7 @@ instance.interceptors.request.use(
         const method = (config.method || "get").toUpperCase();
 
         if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-            const csrfToken = getCookie("csrf_token");
+            const csrfToken  = getCookie("csrf_token_fe");
 
             if (csrfToken) {
                 config.headers = config.headers || {};
@@ -77,9 +77,6 @@ instance.interceptors.response.use(
 
             try {
                 await instance.post("/api/v1/refresh", {}, {
-                    // headers: {
-                    //     "x-csrf-token": getCookie("csrf_token")
-                    // }
                 });
 
                 return instance(originalRequest);

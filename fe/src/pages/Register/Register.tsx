@@ -4,7 +4,7 @@ import InputField from "../../components/layout/InputField/InputField";
 import "./Register.css";
 import "./Register.css";
 import { createUserApi } from "../../services/auth.api";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import registerBg from "../../assets/background/login-register-bg.jpg";
 import registerPortrait from "../../assets/background/register-portrait.jpg";
 
@@ -176,7 +176,7 @@ const Register: React.FC = () => {
 
           <p className="register-footer-text">
             Bạn đã có tài khoản?{" "}
-            <a href="/login" className="register-link">Đăng nhập</a>
+            <Link to="/login" className="register-link">Đăng nhập</Link>
           </p>
           <p className="register-footer-text">
             <a href="/register-owner" className="register-owner-link">

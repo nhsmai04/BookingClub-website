@@ -8,6 +8,14 @@ import { CalculatePrice } from "./subfield.service.js";
 import SportComplex from "../models/sport_complex.model.js";
 import FieldImage from "../models/field_image.model.js";
 import { generateQR } from "../utils/qrcode.js";
+import dayjs from "dayjs";
+import TimeSlot from "../models/time_slot.model.js"
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.tz.setDefault("Asia/Ho_Chi_Minh");
 const timeToMinutes = (time) => {
   const [h, m] = time.split(":").map(Number);
 
@@ -162,6 +170,25 @@ export const createBooking = async (userId, payload) => {
         session,
       });
 
+      const timeSlotsToInsert = booking_details.map((detail) => (
+        {
+          sub_field_id: detail.sub_field_id,
+
+          booked_date: dayjs.tz(detail.play_date, "YYYY-MM-DD", "Asia/Ho_Chi_Minh")
+            .startOf("day")
+            .toDate(),
+
+          time: `${detail.startTime} - ${detail.endTime}`,
+
+          status: "Locked"
+        })
+      );
+
+      await TimeSlot.insertMany(
+        timeSlotsToInsert,
+        { session }
+      );
+
       return booking;
     })
 
@@ -206,17 +233,14 @@ export const cancelBookingBeforePay = async (bookingId, userId) => {
 };
 
 const combineDateAndTime = (date, time) => {
-  const d = new Date(date);
-
-  const [hour, minute] = time.split(":").map(Number);
-
-  d.setHours(hour, minute, 0, 0);
-
-  return d;
+  const dateStr = dayjs(date).format('YYYY-MM-DD');
+  
+  // Kết hợp thành chuỗi "YYYY-MM-DD HH:mm" rồi ép timezone
+  return dayjs.tz(`${dateStr} ${time}`, "YYYY-MM-DD HH:mm", "Asia/Ho_Chi_Minh");
 }
 
 export const completeFinishedBookings = async () => {
-  const now = new Date();
+  const now = dayjs.tz(new Date(), "Asia/Ho_Chi_Minh");
 
   const bookings = await Booking.find({
     status: "confirmed",
@@ -286,8 +310,8 @@ export const getBookingOfUser = async (userId, searchKeyword, statusFilter, page
 
 export const getNextBookingOfUser = async (userId, stateStatus) => {
   try {
-    const now = new Date();
-    
+    const now = dayjs.tz(new Date(), "Asia/Ho_Chi_Minh").toDate();
+    console.log("Current time (Asia/Ho_Chi_Minh):", now);
     // 1. Xác định điều kiện lọc dựa trên stateStatus truyền vào
     let searchStatus = "";
     let dateCondition = {};

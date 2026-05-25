@@ -1,10 +1,12 @@
 node_modules
 npm-debug.log
+.env
+.env.local
 .DS_Store
 .git
 .gitignore
-.eslintrc
-.env
+README.md
+.vscode
+.idea
 dist
-coverage
-build 
+.eslintrc.cjs
