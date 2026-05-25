@@ -103,8 +103,8 @@ function HeroSection() {
 
         <div className="hero-right">
           <img
-            src={courts[0]?.image_url}
-            alt={courts[0]?.image_alt}
+            src={courts[0]?.image_url || "https://images.unsplash.com/photo-1661749711934-492cd19a25c3?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"}
+            alt={courts[0]?.image_alt || "img"}
           />
 
           <div className="hero-court-info">

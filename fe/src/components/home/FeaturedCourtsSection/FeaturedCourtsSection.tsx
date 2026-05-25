@@ -38,7 +38,7 @@ const emptyMessages: Record<string, string> = {
   "Tất cả": "Chưa có sân nổi bật để hiển thị.",
   "Đề xuất": "Chưa có sân đủ dữ liệu đánh giá.",
   "Phổ biến": "Chưa có sân nổi bật để hiển thị.",
-  "Gần đây": "Chưa có lịch sử đặt sân gần đây.",
+  "Gần đây": "Chưa có lịch sử đặt sân gần đây. Hãy đăng nhập để khám phá thêm.",
 };
 
 function FeaturedCourtsSection() {
