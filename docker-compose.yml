@@ -1,0 +1,28 @@
+services:
+  backend:
+    build:
+      context: ./be
+      dockerfile: Dockerfile
+    container_name: mern-be
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./be:/app
+      - /app/node_modules # Giữ node_modules trong container không bị đè bởi máy thật
+    env_file:
+      - ./be/.env # Tự động nạp tất cả biến trong file .env vào BE
+
+  frontend:
+    build:
+      context: ./fe
+      dockerfile: Dockerfile
+    container_name: mern-fe
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./fe:/app
+      - /app/node_modules
+    env_file:
+      - ./fe/.env # Tự động nạp tất cả biến trong file .env vào FE
+    stdin_open: true # Cần thiết cho một số bản React để không bị thoát container
+    tty: true
