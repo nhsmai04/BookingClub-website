@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { Image } from "lucide-react";
+import { Image, LoaderCircle } from "lucide-react";
 import InputField from "../../components/layout/InputField/InputField";
 import "./Register.css";
 import "./Register.css";
 import { createUserApi } from "../../services/auth.api";
+import { useNavigate } from "react-router-dom";
+import registerBg from "../../assets/background/login-register-bg.jpg";
+import registerPortrait from "../../assets/background/register-portrait.jpg";
 
 
 const Register: React.FC = () => {
@@ -12,6 +15,10 @@ const Register: React.FC = () => {
   const [phone, setPhone] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [message, setMessage] = useState({ text: "", type: "" });
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+
 
   const [errors, setErrors] = useState({
     fullName: "",
@@ -25,6 +32,8 @@ const Register: React.FC = () => {
     e.preventDefault();
     let newErrors = { fullName: "", email: "", phone: "", password: "", confirmPassword: "" };
     let isValid = true;
+
+    setMessage({ text: "", type: "" });
 
     if (!fullName.trim()) { newErrors.fullName = "Họ và tên không được để trống"; isValid = false; }
 
@@ -54,26 +63,41 @@ const Register: React.FC = () => {
       console.log("Dữ liệu đăng ký:", { fullName, email, phone, password });
 
       try {
+        setIsLoading(true);
         await createUserApi(fullName, email, phone, password);
-
-        alert("Đăng ký hợp lệ! Vui lòng kiểm tra email để kích hoạt tài khoản.");
+        setMessage({
+          text: "Đăng ký hợp lệ! Vui lòng kiểm tra email để kích hoạt tài khoản.",
+          type: "success",
+        });
+        setTimeout(() => {
+          navigate("/register-success");
+        }, 1000);
       } catch (error: any) {
         console.log(">>> error: ", error);
 
         const message =
           error?.response?.data?.message || "Có lỗi xảy ra";
 
-        alert(message);
+        setMessage({
+          text: message,
+          type: "error",
+        });
+      } finally {
+        setIsLoading(false);
       }
     }
   };
 
   return (
-    <div className="register-wrapper">
+    <div className="register-wrapper" style={{ backgroundImage: `url(${registerBg})` }}>
       <div className="register-card">
         {/* Left: Image placeholder */}
         <div className="register-image-placeholder">
-          <Image size={40} className="register-image-icon" />
+          <img
+            src={registerPortrait}
+            alt="Register"
+            className="register-image"
+          />
         </div>
 
         {/* Right: Form */}
@@ -129,9 +153,25 @@ const Register: React.FC = () => {
               isPassword={true}
             />
 
-            <button type="button" className="register-btn" onClick={handleRegister}>
-              Đăng ký
+            <button type="button"
+              className="register-btn"
+              onClick={handleRegister}
+              disabled={isLoading}
+            >
+              {isLoading ? "Đang đăng ký..." : "Đăng ký"}
             </button>
+            {isLoading ? (
+              <div className="register-loading">
+                <LoaderCircle className="register-loading__icon" />
+                <span>Đang xử lý...</span>
+              </div>
+            ) : (
+              message.text && (
+                <div className={`register-message register-message--${message.type}`}>
+                  {message.text}
+                </div>
+              )
+            )}
           </div>
 
           <p className="register-footer-text">
