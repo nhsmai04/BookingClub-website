@@ -41,8 +41,7 @@ const createCsrfToken = () => {
   return crypto.randomBytes(32).toString("hex");
 }
 
-const setAuthCookies = (res, userId, accessToken, refreshToken) => {
-  const csrfToken = createCsrfToken();
+const setAuthCookies = (res, userId, accessToken, refreshToken, csrfToken) => {
 
   const accessMaxAge = 45 * 60 * 1000;
   const refreshMaxAge = 7 * 24 * 60 * 60 * 1000;
@@ -87,4 +86,5 @@ export default {
   setAuthCookies,
   clearAuthCookies,
   requireCsrf,
+  createCsrfToken
 };

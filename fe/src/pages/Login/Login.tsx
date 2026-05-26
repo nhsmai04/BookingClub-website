@@ -47,6 +47,10 @@ const Login: React.FC = () => {
       try {
         setIsLoading(true);
         const res = await loginApi(phone, password);
+        sessionStorage.setItem(
+          "csrf_token",
+          res.csrfToken
+        );
         if (res) {
           await fetchMe();
           setMessage({
