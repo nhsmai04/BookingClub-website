@@ -30,15 +30,20 @@ export const register = async (req, res) => {
 
     const result = await registerService({ name, phone, password, email });
 
+    // return res.status(201).json({
+    //   message: "Register successful. Please verify your email.",
+    //   user: result.user,
+    //   ...(isProduction
+    //     ? {}
+    //     : {
+    //       verificationToken: result.verificationToken,
+    //       verificationLink: result.verificationLink
+    //     })
+    // });
+
     return res.status(201).json({
-      message: "Register successful. Please verify your email.",
-      user: result.user,
-      ...(isProduction
-        ? {}
-        : {
-          verificationToken: result.verificationToken,
-          verificationLink: result.verificationLink
-        })
+      message: "Đăng ký tài khoản thành công!",
+      user: result.user
     });
 
   } catch (err) {
