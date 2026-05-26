@@ -76,27 +76,38 @@ export const registerService = async ({ name, phone, password, email }) => {
   const emailVerifyTokenHash = hashToken(verificationToken);
   const emailVerifyTokenExpiresAt = createExpiryDate(verifyTokenExpiresMinutes);
 
+  // const user = await User.create({
+  //   name,
+  //   phone,
+  //   password: hashedPassword,
+  //   email,
+  //   status: "Pending",
+  //   email_verified: false,
+  //   email_verify_token_hash: emailVerifyTokenHash,
+  //   email_verify_token_expires_at: emailVerifyTokenExpiresAt
+  // });
+
   const user = await User.create({
     name,
     phone,
     password: hashedPassword,
     email,
-    status: "Pending",
-    email_verified: false,
-    email_verify_token_hash: emailVerifyTokenHash,
-    email_verify_token_expires_at: emailVerifyTokenExpiresAt
+    status: "Active",
+    email_verified: true,
+    email_verify_token_hash: null,
+    email_verify_token_expires_at: null
   });
 
-  const verificationLink = await sendVerificationEmail({
-    email,
-    phone,
-    token: verificationToken
-  });
+  // const verificationLink = await sendVerificationEmail({
+  //   email,
+  //   phone,
+  //   token: verificationToken
+  // });
 
   return {
     user: mapUser(user),
-    verificationToken,
-    verificationLink
+    // verificationToken,
+    // verificationLink
   };
 };
 
