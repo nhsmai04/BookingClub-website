@@ -155,6 +155,7 @@ export const handleVnpayReturn = async (query) => {
 export const cancelExpiredBookings = async () => {
     const now = new Date();
 
+    // 1. Payment VNPAY hết hạn
     const expiredPayments = await Payment.find({
         payment_method: "VNPAY",
         status: "Pending",
@@ -177,4 +178,23 @@ export const cancelExpiredBookings = async () => {
             }
         );
     }
+
+    // 2. Booking chưa payment nhưng quá hạn
+    const expiredTime = new Date(
+        now.getTime() - 10 * 60 * 1000
+    );
+
+    await Booking.updateMany(
+        {
+            status: {
+                $nin: ["confirmed", "completed", "cancelled"],
+            },
+            createdAt: { $lt: expiredTime },
+        },
+        {
+            $set: {
+                status: "cancelled",
+            },
+        }
+    );
 };
