@@ -1,10 +1,14 @@
 /* ===== Register Wrapper ===== */
 .register-wrapper {
-  min-height: 100vh;
+  min-height: 90vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #9ca3af;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  position: relative;
 }
 
 /* ===== Card ===== */
@@ -23,13 +27,23 @@
 
 /* ===== Left: Image Placeholder ===== */
 .register-image-placeholder {
-  flex: 0 0 300px;
-  height: 400px;
-  border: 2px solid #6b7280;
-  border-radius: 4px;
+  flex: 1;
+  overflow: hidden;
+
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 4px;
+  background: #eef4ff;
+}
+
+.register-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* padding: 5px; */
+  display: block;
+  border-radius: 4px;
 }
 
 .register-image-icon {
@@ -125,13 +139,13 @@
 @media screen and (max-width: 768px) {
   .register-card {
     padding: 32px 24px;
-    gap: 0; 
+    gap: 0;
     width: 100%;
     border-radius: 16px;
   }
 
   .register-image-placeholder {
-    display: none; 
+    display: none;
   }
 
   .register-form-box {
@@ -146,6 +160,57 @@
     padding: 10px;
     font-size: 14px;
   }
+}
+
+.register-message {
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.register-message--success {
+  color: #1f9254;
+}
+
+.register-message--error {
+  color: #d4380d;
+}
+
+.register-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  margin-top: 16px;
+
+  color: #4e7ec7;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.register-loading__icon {
+  width: 20px;
+  height: 20px;
+
+  animation: login-spin 0.8s linear infinite;
+}
+
+@keyframes login-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.register-btn:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
 }
 
 /* ===== RESPONSIVE ĐIỆN THOẠI ===== */
