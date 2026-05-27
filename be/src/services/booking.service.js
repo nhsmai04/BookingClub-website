@@ -8,6 +8,8 @@ import { CalculatePrice } from "./subfield.service.js";
 import SportComplex from "../models/sport_complex.model.js";
 import FieldImage from "../models/field_image.model.js";
 import { generateQR } from "../utils/qrcode.js";
+import dayjs from "dayjs";
+import TimeSlot from "../models/time_slot.model.js"
 const timeToMinutes = (time) => {
   const [h, m] = time.split(":").map(Number);
 
@@ -161,6 +163,26 @@ export const createBooking = async (userId, payload) => {
       await BookingDetails.insertMany(bookingDetails, {
         session,
       });
+
+      // 3. Create locked time slots
+      const timeSlotsToInsert = booking_details.map((detail) => (
+        {
+          sub_field_id: detail.sub_field_id,
+
+          booked_date: dayjs(detail.play_date)
+            .startOf("day")
+            .toDate(),
+
+          time: `${detail.startTime} - ${detail.endTime}`,
+
+          status: "Locked"
+        })
+      );
+
+      await TimeSlot.insertMany(
+        timeSlotsToInsert,
+        { session }
+      );
 
       return booking;
     })
