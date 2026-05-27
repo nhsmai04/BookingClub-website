@@ -21,7 +21,8 @@ instance.interceptors.request.use(
         const method = (config.method || "get").toUpperCase();
 
         if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-            const csrfToken = getCookie("csrf_token");
+            // const csrfToken = getCookie("csrf_token");
+            const csrfToken  = sessionStorage.getItem("csrf_token");
 
             if (csrfToken) {
                 config.headers = config.headers || {};
@@ -60,11 +61,11 @@ instance.interceptors.response.use(
             return Promise.reject(error);
         }
 
-        if(originalRequest.url.includes("/login") || originalRequest.url.includes("/register")) {
+        if (originalRequest.url.includes("/login") || originalRequest.url.includes("/register")) {
             return Promise.reject(error);
         }
 
-        if(originalRequest.url.includes("/me")) {
+        if (originalRequest.url.includes("/me")) {
             return Promise.reject(error);
         }
 
@@ -72,7 +73,7 @@ instance.interceptors.response.use(
             error.response?.status === 401 &&
             !originalRequest._retry
         ) {
-            
+
             originalRequest._retry = true;
 
             try {

@@ -57,12 +57,15 @@ export const login = async (req, res) => {
 
     const rs = await loginService({ phone, password });
 
-    await cookieUtils.setAuthCookies(res, String(rs.user._id), rs.access_token, rs.refresh_token);
+    const csrfToken = cookieUtils.createCsrfToken();
+
+    await cookieUtils.setAuthCookies(res, String(rs.user._id), rs.access_token, rs.refresh_token, csrfToken);
 
     return res.json({
       id: rs.user.id,
       phone: rs.user.phone,
-      email: rs.user.email
+      email: rs.user.email,
+      csrfToken
     });
 
   } catch (err) {

@@ -22,6 +22,7 @@ interface LoginResponse {
   access_token: string;
   phone: string;
   email: string;
+  csrfToken: string;
 }
 
 const loginApi = (
@@ -45,7 +46,7 @@ interface User {
 }
 
 const getMeApi = (): Promise<User> => {
-  return axios.post("/api/v1/me");
+  return axios.get("/api/v1/me");
 };
 
 interface LogoutResponse {
