@@ -48,6 +48,21 @@ const CalculatePrice = async (subField_id, playDate, startTime, endTime) => {
     return finalPrice;
 };
 
+const parseTimeRange = (timeRange, playDate) => {
+    const [start, end] = timeRange.split(" - ");
+
+    return {
+        start: dayjs(
+            `${playDate} ${start}`,
+            "YYYY-MM-DD HH:mm"
+        ),
+        end: dayjs(
+            `${playDate} ${end}`,
+            "YYYY-MM-DD HH:mm"
+        )
+    };
+};
+
 const getAvailableTimeSlots = async (subField_id, playDate) => {
     const config = await SubField.findById(subField_id).populate("config_id").populate("complex_id");
 
@@ -64,18 +79,39 @@ const getAvailableTimeSlots = async (subField_id, playDate) => {
 
     // console.log(dayjs(playDate).startOf('day').toDate());
     // 3. Lấy các khung đã được đặt cho ngày đó
+    const startOfDay = dayjs(playDate)
+        .startOf("day")
+        .toDate();
+
+    const endOfDay = dayjs(playDate)
+        .endOf("day")
+        .toDate();
+
     const bookedSlots = await TimeSlot.find({
         sub_field_id: subField_id,
-        booked_date: dayjs(playDate).startOf('day').toDate(),
-        status: { $in: ["Locked", "Booked", "Maintenance"] }
+        booked_date: {
+            $gte: startOfDay,
+            $lte: endOfDay
+        },
+        status: {
+            $in: ["Locked", "Booked", "Maintenance"]
+        }
     });
-    
+
     // console.log("Booked Slots from DB:", bookedSlots);
 
     // Chuyển mảng thành Map để tìm kiếm O(1) thay vì O(n)
     const bookedMap = new Map(bookedSlots.map(s => [s.time, s.status]));
 
     // console.log("Booked Map:", bookedMap);
+    // console.log(
+    //     "queryDate:",
+    //     dayjs(playDate)
+    //         .startOf('day')
+    //         .toDate()
+    // );
+    // console.log("playDate", playDate);
+    // console.log("subField_id", subField_id);
 
     // Merge & kiem tra expired
     const now = dayjs();
@@ -93,10 +129,35 @@ const getAvailableTimeSlots = async (subField_id, playDate) => {
         }
 
         // 2. Check Busy (Đã đặt/Khóa)
-        const statusFromDB = bookedMap.get(slot.time);
-        if (statusFromDB) {
-            return { ...slot, status: statusFromDB };
+        const slotRange = parseTimeRange(
+            slot.time,
+            playDate
+        );
+
+        const matchedBooking = bookedSlots.find(
+            bookedSlot => {
+
+                const bookedRange =
+                    parseTimeRange(
+                        bookedSlot.time,
+                        playDate
+                    );
+
+                // overlap condition
+                return (
+                    slotRange.start.isBefore(bookedRange.end) &&
+                    slotRange.end.isAfter(bookedRange.start)
+                );
+            }
+        );
+
+        if (matchedBooking) {
+            return {
+                ...slot,
+                status: matchedBooking.status
+            };
         }
+
         return slot;
     });
 }

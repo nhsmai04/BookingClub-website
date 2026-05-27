@@ -126,7 +126,6 @@ export const getBookingDetailController = async (req, res) => {
         const user_id = req.user.id;
         const bookingId = req.params.bookingId;
         const bookingDetail = await getBookingDetailService(user_id, bookingId);
-        console.log("Dữ liệu chi tiết booking được trả về từ service:", bookingDetail);
         return res.status(200).json(bookingDetail);
     }catch (error) {
         return res.status(400).json({
