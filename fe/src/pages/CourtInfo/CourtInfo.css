@@ -109,6 +109,27 @@
   color: #4b5563; 
 }
 
+.court-map-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  width: fit-content;
+
+  color: #1677ff;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.court-map-link:visited {
+  color: #1677ff; /* tránh bị tím */
+}
+
+.court-map-link:hover {
+  text-decoration: underline;
+}
+
 /* Mobile: Chia 2 cột hoặc 1 cột */
 @media (max-width: 768px) {
   .amenities-grid {

@@ -474,6 +474,7 @@ export const getComplexesMapService = async () => {
           city: "$city",
           district: "$district",
           phone: "$phone",
+          map_url: "$map_url",
           opening_hours:
             "$opening_hours",
           closing_hours:

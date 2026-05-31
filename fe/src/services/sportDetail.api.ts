@@ -73,6 +73,7 @@ export interface SportComplexDetail {
     totalReviews: number;
     priceRange: string;
     reviews: ReviewItem[];
+    map_url: string;
 }
 
 export const getSportDetail = async (slug: string): Promise<SportComplexDetail> => {
@@ -142,6 +143,7 @@ export const getSportDetail = async (slug: string): Promise<SportComplexDetail> 
         priceRange: priceRange,
         reviews: cleanReviews,
         rating: raw.rating || 0,
-        totalReviews: raw.totalReviews || 0
+        totalReviews: raw.totalReviews || 0,
+        map_url: raw.map_url || ""
     };
 };
