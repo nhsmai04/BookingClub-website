@@ -9,6 +9,7 @@ import SubFieldList from "../../features/SubFieldList/SubFieldList";
 import {getSportDetail, type SportComplexDetail, type SubFieldDetail} from "../../services/sportDetail.api";
 import { type ReviewStats } from "../../types/review";
 import { getReviewStats } from "../../services/review.api";
+import { Navigation } from "lucide-react";
 
 const CourtInfo = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -84,6 +85,17 @@ const CourtInfo = () => {
             <div className="header-info">
               <h1 className="court-title-name">{court.name}</h1>
               <p className="court-location-address">{court.address}</p>
+              {court.map_url && (
+                <a
+                  href={court.map_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="court-map-link"
+                >
+                  <Navigation size={16} />
+                  <span>Xem chỉ đường</span>
+                </a>
+              )}
             </div>
 
             <div className="header-actions">

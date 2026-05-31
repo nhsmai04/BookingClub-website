@@ -31,15 +31,18 @@
 
 /* Đặt kiểu chữ mặc định cho toàn bộ ứng dụng */
 body {
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
-  color: #333;
+  font-family: var(--font-sans);
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Định dạng cho các thẻ tiêu đề */
-h1, h2, h3 {
-  font-weight: bold;
-  color: #333;
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--color-primary);
 }
 
 /* Các kiểu CSS khác cho ứng dụng */

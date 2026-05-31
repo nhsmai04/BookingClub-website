@@ -7,6 +7,7 @@ import {
     Building2,
     Phone,
     Clock3,
+    Navigation
 } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import { useState, useEffect, useMemo } from "react";
@@ -151,6 +152,20 @@ function ComplexSidebar({
                             <MapPin className="complex-map-sidebar__icon" />
                             {props?.address}
                         </p>
+
+                        {props?.map_url && (
+                            <p className="complex-map-sidebar__direction">
+                                <Navigation className="complex-map-sidebar__icon" />
+                                <a
+                                    href={props.map_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="complex-map-sidebar__link"
+                                >
+                                    Xem chỉ đường
+                                </a>
+                            </p>
+                        )}
 
                         <p>
                             <Building2 className="complex-map-sidebar__icon" />

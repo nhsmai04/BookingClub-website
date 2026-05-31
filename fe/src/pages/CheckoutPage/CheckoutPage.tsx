@@ -96,7 +96,7 @@ const CheckoutPage: React.FC = () => {
       // làm sạch data trước khi gửi BE
       const backendPayload = {
         complex_id: bookingData.complex_id,
-        booking_date: new Date().toISOString(),
+        booking_date: bookingData.booking_date || new Date().toISOString(),
         booking_details: bookingData.booking_details.map((d: any) => ({
           sub_field_id: d.sub_field_id,
           play_date: d.playDate,

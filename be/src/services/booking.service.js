@@ -110,7 +110,11 @@ export const createBooking = async (userId, payload) => {
 
         const existedDetails = await BookingDetails.find({
           sub_field_id: item.sub_field_id,
-          play_date: item.play_date,
+          play_date: 
+          {
+            $gte: dayjs.tz(item.play_date, "YYYY-MM-DD", "Asia/Ho_Chi_Minh").startOf("day").toDate(),
+            $lte: dayjs.tz(item.play_date, "YYYY-MM-DD", "Asia/Ho_Chi_Minh").endOf("day").toDate()
+          }
         })
           .populate({
             path: "booking_id",
@@ -144,7 +148,7 @@ export const createBooking = async (userId, payload) => {
 
         detailsToInsert.push({
           sub_field_id: item.sub_field_id,
-          play_date: item.play_date,
+          play_date: dayjs.tz(item.play_date, "YYYY-MM-DD", "Asia/Ho_Chi_Minh").startOf("day").toDate(),
           price: price,
           start_time: item.startTime,
           end_time: item.endTime,
@@ -154,7 +158,7 @@ export const createBooking = async (userId, payload) => {
       const [booking] = await Booking.create([{
         user_id: userId,
         complex_id,
-        booking_date,
+        booking_date: dayjs.tz(booking_date, "YYYY-MM-DD", "Asia/Ho_Chi_Minh").startOf("day").toDate(),
         total_price: totalPrice,
         status: "pending",
       }],
@@ -233,7 +237,7 @@ export const cancelBookingBeforePay = async (bookingId, userId) => {
 };
 
 const combineDateAndTime = (date, time) => {
-  const dateStr = dayjs(date).format('YYYY-MM-DD');
+  const dateStr = dayjs(date).tz("Asia/Ho_Chi_Minh").format('YYYY-MM-DD');
   
   // Kết hợp thành chuỗi "YYYY-MM-DD HH:mm" rồi ép timezone
   return dayjs.tz(`${dateStr} ${time}`, "YYYY-MM-DD HH:mm", "Asia/Ho_Chi_Minh");
@@ -310,50 +314,102 @@ export const getBookingOfUser = async (userId, searchKeyword, statusFilter, page
 
 export const getNextBookingOfUser = async (userId, stateStatus) => {
   try {
-    const now = dayjs.tz(new Date(), "Asia/Ho_Chi_Minh").toDate();
-    console.log("Current time (Asia/Ho_Chi_Minh):", now);
-    // 1. Xác định điều kiện lọc dựa trên stateStatus truyền vào
     let searchStatus = "";
-    let dateCondition = {};
-    let sortCondition = {};
 
     if (stateStatus === "active") {
       searchStatus = "confirmed";
-      dateCondition = { $gte: now }; 
-      sortCondition = { booking_date: 1 }; 
     } else if (stateStatus === "completed") {
       searchStatus = "completed";
-      // Đơn đã xong gần đây nhất: Ngày đặt sân phải nhỏ hơn thời gian hiện tại
-      dateCondition = { $lt: now }; 
-      sortCondition = { booking_date: -1 }; 
     } else {
-      // Trường hợp status không hợp lệ
       return { totalBookings: 0, booking: null };
     }
 
-    const [totalBookings, booking] = await Promise.all([
-      // Truy vấn 1: Đếm tổng số lượng đơn theo trạng thái của User
-      Booking.countDocuments({
-        user_id: userId,
-        status: searchStatus
-      }),
+    const query = {
+      user_id: userId,
+      status: searchStatus,
+    };
 
-      // Truy vấn 2: Lấy ra đúng 1 đơn thỏa mãn điều kiện thời gian gần nhất
-      Booking.findOne({
-        user_id: userId,
-        status: searchStatus,
-        booking_date: dateCondition,
-      })
-        .sort(sortCondition)
-        .populate("complex_id", "name")
-        .select("_id complex_id booking_date ")
-        .lean()
-    ]);
+    const totalBookings = await Booking.countDocuments(query);
 
-    // 3. Trả về cấu trúc dữ liệu đồng nhất cho Front-end dễ xử lý
+    const bookings = await Booking.find(query)
+      .populate("complex_id", "name")
+      .select("_id complex_id booking_date status")
+      .lean();
+
+    if (!bookings.length) {
+      return { totalBookings, booking: null };
+    }
+
+    const bookingIds = bookings.map((booking) => booking._id);
+
+    const details = await BookingDetails.find({
+      booking_id: { $in: bookingIds },
+    })
+      .select("booking_id play_date start_time end_time")
+      .lean();
+
+    const now = dayjs.tz(new Date(), "Asia/Ho_Chi_Minh");
+
+    const bookingMap = new Map(
+      bookings.map((booking) => [
+        booking._id.toString(),
+        booking,
+      ])
+    );
+
+    let candidateDetails = details.map((detail) => {
+      const startDateTime = combineDateAndTime(
+        detail.play_date,
+        detail.start_time
+      );
+
+      return {
+        ...detail,
+        startDateTime,
+      };
+    });
+
+    if (stateStatus === "active") {
+      candidateDetails = candidateDetails.filter((detail) =>
+        detail.startDateTime.isAfter(now)
+      );
+
+      candidateDetails.sort((a, b) =>
+        a.startDateTime.valueOf() - b.startDateTime.valueOf()
+      );
+    }
+
+    if (stateStatus === "completed") {
+      candidateDetails = candidateDetails.filter((detail) =>
+        detail.startDateTime.isBefore(now)
+      );
+
+      candidateDetails.sort((a, b) =>
+        b.startDateTime.valueOf() - a.startDateTime.valueOf()
+      );
+    }
+
+    if (!candidateDetails.length) {
+      return { totalBookings, booking: null };
+    }
+
+    const nearestDetail = candidateDetails[0];
+
+    const booking = bookingMap.get(
+      nearestDetail.booking_id.toString()
+    );
+
     return {
       totalBookings,
-      booking        
+      booking: {
+        ...booking,
+        nearest_time_slot: {
+          play_date: nearestDetail.play_date,
+          start_time: nearestDetail.start_time,
+          end_time: nearestDetail.end_time,
+          start_datetime: nearestDetail.startDateTime.toDate(),
+        },
+      },
     };
 
   } catch (error) {
