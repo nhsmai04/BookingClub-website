@@ -5,7 +5,7 @@
     display: flex;
     flex-direction: column;
     padding: 24px;
-    flex-shrink: 0; // Không cho phép sidebar bị co lại
+    flex-shrink: 0; 
     position: sticky;
     top: 0; 
     height: auto; 

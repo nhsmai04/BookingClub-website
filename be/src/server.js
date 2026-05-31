@@ -39,37 +39,49 @@ app.use(
   })
 );
 
-connectDB();
 app.use(cookieParser());
 app.use(express.json());
 
 app.get('/', (req, res) => {
   res.send('Hello, World!');
 });
+
+app.get('/api/v1/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 app.use('/api/v1', routes);
 app.use('/api/v1', paymentRouter);
 app.use('/api/v1/bookings', bookingRouter);
 app.use('/api/v1/sportcomplex', sportComplexRouter);
 app.use('/api/v1/subfield', subFieldRouter);
 
+const startServer = async () => {
+  await connectDB();
 
-app.listen(PORT, () => {
-  console.log("Server is running on port", PORT);
+  app.listen(PORT, () => {
+    console.log("Server is running on port", PORT);
+  });
+
+  setInterval(async () => {
+    try {
+      await cancelExpiredBookings();
+    } catch (err) {
+      console.error(err);
+    }
+  }, 60 * 1000);
+
+  setInterval(async () => {
+    try {
+      await completeFinishedBookings();
+      console.log("completed booking check finished");
+    } catch (err) {
+      console.error(err);
+    }
+  }, 60 * 60 * 1000);
+};
+
+startServer().catch((err) => {
+  console.error(err);
+  process.exit(1);
 });
-
-setInterval(async () => {
-  try {
-    await cancelExpiredBookings();
-  } catch (err) {
-    console.error(err);
-  }
-}, 60 * 1000);
-
-setInterval(async () => {
-  try {
-    await completeFinishedBookings();
-    console.log("completed booking check finished");
-  } catch (err) {
-    console.error(err);
-  }
-}, 60 * 60 * 1000);

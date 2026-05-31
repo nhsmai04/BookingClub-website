@@ -3,7 +3,7 @@ import { Image, LoaderCircle } from "lucide-react";
 import "./Login.css";
 import InputField from "../../components/layout/InputField/InputField";
 import { loginApi } from "../../services/auth.api";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import loginBg from "../../assets/background/login-register-bg.jpg";
 import loginPortrait from "../../assets/background/login-portrait.jpg";
@@ -47,6 +47,11 @@ const Login: React.FC = () => {
       try {
         setIsLoading(true);
         const res = await loginApi(phone, password);
+
+        document.cookie = `csrf_token_fe=${encodeURIComponent(
+          res.csrfToken
+        )}; path=/; max-age=86400; SameSite=None; Secure`;
+        
         if (res) {
           await fetchMe();
           setMessage({
@@ -137,9 +142,7 @@ const Login: React.FC = () => {
           {/* Footer link */}
           <p className="login-footer-text">
             Bạn chưa có tài khoản?{" "}
-            <a href="/register" className="login-link">
-              Đăng ký
-            </a>
+            <Link to ="/register" className="login-link">Đăng ký</Link>
           </p>
         </div>
       </div>

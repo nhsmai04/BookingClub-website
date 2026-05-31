@@ -47,7 +47,7 @@ router.post("/verify-email", verifyEmail);
 router.post("/resend-verification-email", resendVerificationEmail);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
-router.post("/me", cookieUtils.requireCsrf, getMe);
+router.get("/me", getMe);
 router.put("/me/update", cookieUtils.requireCsrf, updateMe);
 router.patch("/me/update-password", cookieUtils.requireCsrf, updatePassword);
 //review

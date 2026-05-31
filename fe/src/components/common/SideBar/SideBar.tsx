@@ -34,19 +34,15 @@ const SideBar: React.FC = () => {
     'My Bookings'
   );
 
-  // Ham logout
   const handleLogout = async () => {
-    // Implementation for logout
-    try {
-      await logoutApi();
-      setUser(null);
-      alert("Đăng xuất thành công");
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout failed:", error);
-      setUser(null); // Dù logout thất bại, vẫn setUser về null để cập nhật UI
-    }
-  };
+      if (window.confirm("Bạn có chắc chắn muốn đăng xuất?")) {
+        try { await logoutApi(); } catch (e) {}
+        sessionStorage.clear();
+        setUser(null);
+        document.cookie = "csrf_token_fe=; path=/; max-age=0; SameSite=None; Secure=true";
+        navigate("/login");
+      }
+    };
 
   const handleNavigate = (label: string, path: string) => {
     setActiveTab(label);

@@ -5,6 +5,7 @@ import crypto from "crypto";
 import { sendMail } from "./email.service.js";
 import { buildResetPasswordEmailHtml, buildVerificationEmailHtml } from "../utils/email.templates.js";
 import { createAccessToken, createRefreshToken } from "../utils/jwt.js"
+import { validatePhone } from "../utils/sanitizer.js";
 
 const getApiBaseUrl = () => (process.env.API_BASE_URL || "http://localhost:5001").replace(/\/$/, "");
 const getClientUrl = () => (process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
@@ -112,9 +113,10 @@ export const registerService = async ({ name, phone, password, email }) => {
 };
 
 export const loginService = async ({ phone, password }) => {
-  const user = await User.findOne({ phone: phone });
+  const validatedPhone = validatePhone(phone);
+  const user = await User.findOne({ phone: validatedPhone });
 
-  if (!user) throw new Error("Wrong email or password");
+  if (!user) throw new Error("Sai số điện thoại hoặc mật khẩu");
 
   if (!user.email_verified || user.status === "Pending") {
     throw new Error("Please verify your email first");
@@ -123,7 +125,7 @@ export const loginService = async ({ phone, password }) => {
   const isMatch = await bcrypt.compare(password, user.password);
 
   if (!isMatch) {
-    throw new Error("Wrong email or password");
+    throw new Error("Sai số điện thoại hoặc mật khẩu");
   }
 
   //tao token

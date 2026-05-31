@@ -157,10 +157,9 @@ const ProfilePage: React.FC = () => {
   const handleLogout = async () => {
     if (window.confirm("Bạn có chắc chắn muốn đăng xuất?")) {
       try { await logoutApi(); } catch (e) {}
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("isLoggedIn"); 
       sessionStorage.clear();
       setUser(null);
+      document.cookie = "csrf_token_fe=; path=/; max-age=0; SameSite=None; Secure=true";
       navigate("/login");
     }
   };

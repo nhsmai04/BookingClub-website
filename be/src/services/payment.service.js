@@ -2,7 +2,17 @@ import Booking from "../models/booking.model.js";
 import Payment from "../models/payment.model.js";
 import { VNPay, ProductCode, VnpLocale, ignoreLogger } from "vnpay";
 import { formatDate } from "../utils/date.js";
-import { generateQR } from "../utils/qrCode.js";
+import { generateQR } from "../utils/qrcode.js";
+import BookingDetails from "../models/booking_details.model.js"
+import dayjs from "dayjs";
+import TimeSlot from "../models/time_slot.model.js"
+
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.tz.setDefault("Asia/Ho_Chi_Minh");
 export const createVnpayPayment = async (bookingId, userId) => {
     const booking = await Booking.findOne({
         _id: bookingId,
@@ -45,7 +55,7 @@ export const createVnpayPayment = async (bookingId, userId) => {
         }
         if (payment.status === "Pending") {
             payment.vnpay_details.vnp_TxnRef = txnRef;
-            payment.expired_at = expireDate;
+            payment.expired_at = formatDate(expireDate);
             await payment.save();
         }
     }
@@ -79,6 +89,51 @@ export const createVnpayPayment = async (bookingId, userId) => {
 
     return paymentUrl;
 }
+
+const updateTimeSlotStatusToBooked = async (bookingId) => {
+    const bookingDetails =
+        await BookingDetails.find({
+            booking_id: bookingId
+        });
+
+    const updateConditions =
+        bookingDetails.map(detail => ({
+
+            sub_field_id:
+                detail.sub_field_id,
+
+            booked_date: {
+                $gte: dayjs.tz(detail.play_date, "YYYY-MM-DD", "Asia/Ho_Chi_Minh")
+                    .startOf("day")
+                    .toDate(),
+
+                $lte: dayjs.tz(detail.play_date, "YYYY-MM-DD", "Asia/Ho_Chi_Minh")
+                    .endOf("day")
+                    .toDate()
+            },
+
+            time:
+                `${detail.start_time} - ${detail.end_time}`,
+
+            status:
+                "Locked"
+        }));
+
+    if (
+        !updateConditions.length
+    ) return;
+
+    await TimeSlot.updateMany(
+        {
+            $or: updateConditions
+        },
+        {
+            $set: {
+                status: "Booked"
+            }
+        }
+    );
+};
 
 export const handleVnpayReturn = async (query) => {
     const txnRef = query.vnp_TxnRef;
@@ -135,6 +190,7 @@ export const handleVnpayReturn = async (query) => {
         payment.status = "Completed";
         booking.status = "confirmed";
         booking.qr_code_url = await generateQR(bookingId);
+        await updateTimeSlotStatusToBooked(bookingId);
     } else {
         payment.status = "Failed";
     }
@@ -151,21 +207,104 @@ export const handleVnpayReturn = async (query) => {
     };
 }
 
+const deleteLockedTimeSlots =
+    async (bookingId) => {
+
+        const bookingDetails =
+            await BookingDetails.find({
+                booking_id: bookingId
+            });
+
+        const deleteConditions =
+            bookingDetails.map(detail => ({
+
+                sub_field_id:
+                    detail.sub_field_id,
+
+                booked_date: {
+                    $gte: dayjs.tz(
+                        detail.play_date,
+                        "YYYY-MM-DD",
+                        "Asia/Ho_Chi_Minh"
+                    )
+                        .startOf("day")
+                        .toDate(),
+
+                    $lte: dayjs.tz(
+                        detail.play_date,
+                        "YYYY-MM-DD",
+                        "Asia/Ho_Chi_Minh"
+                    )
+                        .endOf("day")
+                        .toDate()
+                },
+
+                time:
+                    `${detail.start_time} - ${detail.end_time}`,
+
+                status:
+                    "Locked"
+            }));
+
+        if (deleteConditions.length) {
+            await TimeSlot.deleteMany({
+                $or: deleteConditions
+            });
+        }
+    };
+
 // job chạy nền kiểm tra các payment đã hết hạn chưa -> nếu hết hạn thì xem như hủy booking
 export const cancelExpiredBookings = async () => {
+
     const now = new Date();
 
-    const expiredPayments = await Payment.find({
-        payment_method: "VNPAY",
-        status: "Pending",
-        expired_at: { $lt: now },
+    // 1. Booking chưa payment
+    // quá 10 phút
+    const expiredTime = new Date(now.getTime() - 10 * 60 * 1000);
+
+    // lấy booking sắp bị cancel
+    const expiredBookings = await Booking.find({
+        status: {
+            $nin: [
+                "confirmed",
+                "completed",
+                "cancelled"
+            ],
+        },
+        createdAt: {
+            $lt: dayjs.tz(expiredTime, "YYYY-MM-DD HH:mm:ss", "Asia/Ho_Chi_Minh")
+        },
     });
 
+    // cancel + delete slot
+    for (const booking of expiredBookings) {
+
+        booking.status = "cancelled";
+
+        await booking.save();
+
+        await deleteLockedTimeSlots(booking._id);
+    }
+
+    // 2. Payment hết hạn
+    const expiredPayments =
+        await Payment.find({
+            payment_method: "VNPAY",
+
+            status: "Pending",
+
+            expired_at: {
+                $lt: dayjs.tz(now, "YYYY-MM-DD HH:mm:ss", "Asia/Ho_Chi_Minh")
+            },
+        });
+
     for (const payment of expiredPayments) {
+
         payment.status = "Expired";
+
         await payment.save();
 
-        await Booking.updateOne(
+        const booking = await Booking.findOneAndUpdate(
             {
                 _id: payment.booking_id,
                 status: "pending",
@@ -174,7 +313,16 @@ export const cancelExpiredBookings = async () => {
                 $set: {
                     status: "cancelled",
                 },
+            },
+            {
+                returnDocument: "after"
             }
+        );
+
+        if (!booking) continue;
+
+        await deleteLockedTimeSlots(
+            booking._id
         );
     }
 };
