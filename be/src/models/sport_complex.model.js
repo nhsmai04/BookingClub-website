@@ -43,6 +43,10 @@ const sportComplexSchema = new mongoose.Schema({
             required: true
             }
     },
+    map_url: {
+      type: String,
+      default: "",
+    },
     phone:{
         type: String,
         required: true,

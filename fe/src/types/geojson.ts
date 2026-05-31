@@ -18,6 +18,7 @@ export interface ComplexFeature {
         opening_hours: string;
         closing_hours: string;
         image_url: string;
+        map_url: string;
     };
 }
 
