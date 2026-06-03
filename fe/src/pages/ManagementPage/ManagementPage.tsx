@@ -290,9 +290,15 @@ const ManagementPage = () => {
               <h3 className="stats-value">{activeBookingStat?.totalBookings || 0}</h3>
               <div className="stats-meta">
                 <Calendar size={16} />
-                <span> 
-                  Next: {activeBookingStat?.booking?.booking_date ? moment(activeBookingStat.booking.booking_date).format('HH:mm - DD/MM/YYYY') : "Không có đơn sắp tới"}
-                 </span>
+                <span>  Next: {
+    activeBookingStat?.booking?.nearest_time_slot
+      ? `${activeBookingStat.booking.nearest_time_slot.start_time} - ${moment
+          .utc(activeBookingStat.booking.nearest_time_slot.play_date)
+          .local()
+          .format("DD/MM/YYYY")}`
+      : "Không có đơn sắp tới"
+  }
+</span>
               </div>
             </div>
           </motion.div>
@@ -309,7 +315,15 @@ const ManagementPage = () => {
               <h3 className="stats-value">{confirmedBookingStat?.totalBookings || 0}</h3>
               <div className="stats-meta">
                 <History size={16} />
-                <span>Last played: {confirmedBookingStat?.booking?.booking_date ? moment(confirmedBookingStat.booking.booking_date).format('HH:mm - DD/MM/YYYY') : "Không có đơn đã hoàn thành"}</span>
+                <span>  Last : {
+    confirmedBookingStat?.booking?.nearest_time_slot
+      ? `${confirmedBookingStat.booking.nearest_time_slot.start_time} - ${moment
+          .utc(confirmedBookingStat.booking.nearest_time_slot.play_date)
+          .local()
+          .format("DD/MM/YYYY")}`
+      : "Không có đơn đã hoàn thành"
+  }
+</span>
               </div>
             </div>
           </motion.div>

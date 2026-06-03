@@ -76,7 +76,7 @@ const getAvailableTimeSlots = async (subField_id, playDate) => {
 
     const openingHour = config.complex_id.opening_hours;
     const closingHour = config.complex_id.closing_hours;
-    const slotStep = config.config_id.slot_step;
+    const slotStep = config.config_id.min_duration;
 
     // 2. Tạo khung mặc định dựa trên thông tin vừa lấy
     let allSlots = generateTimeSlots(openingHour, closingHour, playDate, slotStep);
@@ -84,7 +84,10 @@ const getAvailableTimeSlots = async (subField_id, playDate) => {
     // 3. Lấy các khung đã được đặt cho ngày đó
     const bookedSlots = await TimeSlot.find({
         sub_field_id: subField_id,
-        booked_date: dayjs.tz(playDate, "YYYY-MM-DD", "Asia/Ho_Chi_Minh").startOf('day').toDate(),
+        booked_date: {
+            $gte: dayjs.tz(playDate, "YYYY-MM-DD", "Asia/Ho_Chi_Minh").startOf("day").toDate(),
+            $lte: dayjs.tz(playDate, "YYYY-MM-DD", "Asia/Ho_Chi_Minh").endOf("day").toDate()
+        },
         status: { $in: ["Locked", "Booked", "Maintenance"] }
     });
     

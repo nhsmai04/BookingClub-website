@@ -13,6 +13,24 @@ import timezone from "dayjs/plugin/timezone.js";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.tz.setDefault("Asia/Ho_Chi_Minh");
+
+const getVietnamDayRange = (date) => {
+  const dateStr = dayjs(date)
+    .tz("Asia/Ho_Chi_Minh")
+    .format("YYYY-MM-DD");
+
+  return {
+    start: dayjs
+      .tz(dateStr, "YYYY-MM-DD", "Asia/Ho_Chi_Minh")
+      .startOf("day")
+      .toDate(),
+
+    end: dayjs
+      .tz(dateStr, "YYYY-MM-DD", "Asia/Ho_Chi_Minh")
+      .endOf("day")
+      .toDate(),
+  };
+};
 export const createVnpayPayment = async (bookingId, userId) => {
     const booking = await Booking.findOne({
         _id: bookingId,
@@ -55,7 +73,7 @@ export const createVnpayPayment = async (bookingId, userId) => {
         }
         if (payment.status === "Pending") {
             payment.vnpay_details.vnp_TxnRef = txnRef;
-            payment.expired_at = formatDate(expireDate);
+            payment.expired_at = expireDate;
             await payment.save();
         }
     }
@@ -91,48 +109,39 @@ export const createVnpayPayment = async (bookingId, userId) => {
 }
 
 const updateTimeSlotStatusToBooked = async (bookingId) => {
-    const bookingDetails =
-        await BookingDetails.find({
-            booking_id: bookingId
-        });
+  const bookingDetails = await BookingDetails.find({
+    booking_id: bookingId,
+  });
 
-    const updateConditions =
-        bookingDetails.map(detail => ({
+  const updateConditions = bookingDetails.map((detail) => {
+    const { start, end } = getVietnamDayRange(detail.play_date);
 
-            sub_field_id:
-                detail.sub_field_id,
+    return {
+      sub_field_id: detail.sub_field_id,
 
-            booked_date: {
-                $gte: dayjs.tz(detail.play_date, "YYYY-MM-DD", "Asia/Ho_Chi_Minh")
-                    .startOf("day")
-                    .toDate(),
+      booked_date: {
+        $gte: start,
+        $lte: end,
+      },
 
-                $lte: dayjs.tz(detail.play_date, "YYYY-MM-DD", "Asia/Ho_Chi_Minh")
-                    .endOf("day")
-                    .toDate()
-            },
+      time: `${detail.start_time} - ${detail.end_time}`,
 
-            time:
-                `${detail.start_time} - ${detail.end_time}`,
+      status: "Locked",
+    };
+  });
 
-            status:
-                "Locked"
-        }));
+  if (!updateConditions.length) return;
 
-    if (
-        !updateConditions.length
-    ) return;
-
-    await TimeSlot.updateMany(
-        {
-            $or: updateConditions
-        },
-        {
-            $set: {
-                status: "Booked"
-            }
-        }
-    );
+  await TimeSlot.updateMany(
+    {
+      $or: updateConditions,
+    },
+    {
+      $set: {
+        status: "Booked",
+      },
+    }
+  );
 };
 
 export const handleVnpayReturn = async (query) => {
@@ -207,51 +216,34 @@ export const handleVnpayReturn = async (query) => {
     };
 }
 
-const deleteLockedTimeSlots =
-    async (bookingId) => {
+const deleteLockedTimeSlots = async (bookingId) => {
+  const bookingDetails = await BookingDetails.find({
+    booking_id: bookingId,
+  });
 
-        const bookingDetails =
-            await BookingDetails.find({
-                booking_id: bookingId
-            });
+  const deleteConditions = bookingDetails.map((detail) => {
+    const { start, end } = getVietnamDayRange(detail.play_date);
 
-        const deleteConditions =
-            bookingDetails.map(detail => ({
+    return {
+      sub_field_id: detail.sub_field_id,
 
-                sub_field_id:
-                    detail.sub_field_id,
+      booked_date: {
+        $gte: start,
+        $lte: end,
+      },
 
-                booked_date: {
-                    $gte: dayjs.tz(
-                        detail.play_date,
-                        "YYYY-MM-DD",
-                        "Asia/Ho_Chi_Minh"
-                    )
-                        .startOf("day")
-                        .toDate(),
+      time: `${detail.start_time} - ${detail.end_time}`,
 
-                    $lte: dayjs.tz(
-                        detail.play_date,
-                        "YYYY-MM-DD",
-                        "Asia/Ho_Chi_Minh"
-                    )
-                        .endOf("day")
-                        .toDate()
-                },
-
-                time:
-                    `${detail.start_time} - ${detail.end_time}`,
-
-                status:
-                    "Locked"
-            }));
-
-        if (deleteConditions.length) {
-            await TimeSlot.deleteMany({
-                $or: deleteConditions
-            });
-        }
+      status: "Locked",
     };
+  });
+
+  if (!deleteConditions.length) return;
+
+  await TimeSlot.deleteMany({
+    $or: deleteConditions,
+  });
+};
 
 // job chạy nền kiểm tra các payment đã hết hạn chưa -> nếu hết hạn thì xem như hủy booking
 export const cancelExpiredBookings = async () => {
@@ -272,7 +264,7 @@ export const cancelExpiredBookings = async () => {
             ],
         },
         createdAt: {
-            $lt: dayjs.tz(expiredTime, "YYYY-MM-DD HH:mm:ss", "Asia/Ho_Chi_Minh")
+            $lt: expiredTime
         },
     });
 
@@ -294,7 +286,7 @@ export const cancelExpiredBookings = async () => {
             status: "Pending",
 
             expired_at: {
-                $lt: dayjs.tz(now, "YYYY-MM-DD HH:mm:ss", "Asia/Ho_Chi_Minh")
+                $lt: now
             },
         });
 

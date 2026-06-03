@@ -4,8 +4,6 @@ import { useNavigate } from "react-router";
 
 function Home() {
   const { user, setUser, loading  } = useAuth();
-  console.log("User in Home:", user);
-  console.log("Loading in Home:", loading);
 
   const navigate = useNavigate();
 
