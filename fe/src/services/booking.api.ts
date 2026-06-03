@@ -94,11 +94,28 @@ const getReviewOfBookingApi = async (bookingId: string): Promise<GetReviewOfBook
     return response[0];
 }
 
-export interface GetBookingStatsResponse {
-  totalBookings: number;
-  booking: Booking | null;
+export interface NearestTimeSlot {
+  play_date: string;
+  start_time: string;
+  end_time: string;
+  start_datetime: string;
 }
 
+export interface NextBooking {
+  _id: string;
+  complex_id: {
+    _id: string;
+    name: string;
+  };
+  booking_date: string;
+  status: string;
+
+  nearest_time_slot: NearestTimeSlot;
+}
+export interface GetBookingStatsResponse {
+  totalBookings: number;
+  booking: NextBooking | null;
+}
 const getNextBookingOfUserApi = async (stateStatus: string) : Promise<GetBookingStatsResponse> => {
   const URL_API = `/api/v1/bookings/next-booking`;
   const response = await axios.get<any,GetBookingStatsResponse>(URL_API, {

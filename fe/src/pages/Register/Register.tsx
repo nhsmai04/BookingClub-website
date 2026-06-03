@@ -60,8 +60,6 @@ const Register: React.FC = () => {
     setErrors(newErrors);
 
     if (isValid) {
-      console.log("Dữ liệu đăng ký:", { fullName, email, phone, password });
-
       try {
         setIsLoading(true);
         await createUserApi(fullName, email, phone, password);

@@ -34,7 +34,6 @@ const updateMeService = async (userId, updateData) => {
       updateFields[key] = updateData[key];
     }
   });
-  console.log("updateFields", updateFields);
   await user.save();
   return updateFields;
 }

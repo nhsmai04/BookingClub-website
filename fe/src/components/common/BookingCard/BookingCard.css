@@ -454,3 +454,26 @@
 .booking-pay-btn:hover:not(:disabled) { background-color: #2e4568; }
 .booking-pay-btn:active:not(:disabled) { transform: scale(0.98); }
 .booking-pay-btn:disabled { background-color: #d1d5db; cursor: not-allowed; opacity: 0.7; }
+
+/* ===== Loading Shimmer Effect ===== */
+.shimmer-container {
+  pointer-events: none;
+}
+
+.shimmer-pill {
+  height: 44px;
+  background: linear-gradient(90deg, var(--color-gray-100) 25%, var(--color-gray-200) 50%, var(--color-gray-100) 75%);
+  background-size: 200% 100%;
+  animation: loading-shimmer 1.5s infinite linear;
+  border-radius: 8px;
+  border: none;
+}
+
+@keyframes loading-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

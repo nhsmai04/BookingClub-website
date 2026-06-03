@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./BookingCard.css";
 import { useNavigate, useParams } from 'react-router-dom';
 import {getTimeSlot} from "../../../services/sportDetail.api";
+import { motion, AnimatePresence } from "framer-motion";
 
 // --- INTERFACES ---
 interface TimeSlot {
@@ -51,6 +52,24 @@ interface CartItem {
   services: string[];
   date: string;
 }
+
+const getDurationInMinutes = (slotRange: string): number => {
+  const [start, end] = slotRange.split(" - ");
+  if (!start || !end) return 0;
+  const [startH, startM] = start.split(":").map(Number);
+  const [endH, endM] = end.split(":").map(Number);
+  return (endH * 60 + endM) - (startH * 60 + startM);
+};
+
+const getDurationInHours = (slotRange: string): number => {
+  return getDurationInMinutes(slotRange) / 60;
+};
+
+const getHoursBetween = (startTime: string, endTime: string): number => {
+  const [startH, startM] = startTime.split(':').map(Number);
+  const [endH, endM] = endTime.split(':').map(Number);
+  return ((endH * 60 + endM) - (startH * 60 + startM)) / 60;
+};
 
 const availableServices: ServiceItem[] = [
   { id: "referee", name: "Thuê trọng tài", price: 200000, unit: "hour" },
@@ -242,8 +261,6 @@ const BookingCard: React.FC<BookingCardProps> = ({
     // Lấy thông tin sân courtsList
     const courtIdInCart = id.split('-')[0]; // Tách ID từ key "ID-Date"
     const courtInfo = courtsList.find(c => c.id === courtIdInCart);
-    const itemSlotStep = courtInfo?.slotStep || 30;
-    const slotStepInHours = itemSlotStep / 60;
     const itemPricingRules = courtInfo?.pricingRules || [];
 
     // Tính tiền sân
@@ -255,11 +272,11 @@ const BookingCard: React.FC<BookingCardProps> = ({
         item.basePrice,
         itemPricingRules
       );
-      return sum + (priceAtThisTime * slotStepInHours);
+      return sum + (priceAtThisTime * getDurationInHours(slotRange));
     }, 0);
 
     // Tính tiền dịch vụ dựa trên tổng giờ 
-    const hours = (item.slots.length * itemSlotStep) / 60;
+    const hours = item.slots.reduce((sum, slotRange) => sum + getDurationInHours(slotRange), 0);
 
     const servicesCost = item.services.reduce((sum, sId) => {
       const s = availableServices.find(x => x.id === sId);
@@ -315,9 +332,14 @@ const BookingCard: React.FC<BookingCardProps> = ({
 
       // Map giá tiền và dịch vụ cho từng Block
       courtBlocks.forEach((block, index) => {
-        const blockHours = block.slotCount * 0.5;
-        const blockPrice = blockHours * item.basePrice;
-
+        const blockHours = getHoursBetween(block.startTime, block.endTime);
+        const courtInfo = courtsList.find(c => String(c.id) === String(block.sub_field_id));
+        const blockPrice = getPriceForSlot(
+          block.startTime,
+          block.playDate,
+          item.basePrice,
+          courtInfo?.pricingRules || []
+        ) * blockHours;
         let detailedServices: any[] = [];
 
         // Gắn dịch vụ vào tất cả các block
@@ -366,7 +388,6 @@ const BookingCard: React.FC<BookingCardProps> = ({
     setCart({});
     setSelectedCourtId("");
     setCourtDetail(null);
-    console.log("Dữ liệu booking gửi đi:", bookingPayload);
     navigate(`/complexes/${bookingPayload.complex_id}/booking/confirm`, {
       state: {
         bookingData: bookingPayload,
@@ -388,10 +409,10 @@ const BookingCard: React.FC<BookingCardProps> = ({
   };
 
   // 1. Tính tổng số phút đã chọn cho sân hiện tại
-  // Mỗi slot trong availableSlots đại diện cho slotStep (thường là 30p)
-  const currentSlotStep = courtDetail?.slotStep || 30;
-  const totalMinutesSelected = currentActiveSlots.length * currentSlotStep;
-
+  const totalMinutesSelected = currentActiveSlots.reduce(
+    (total, slotRange) => total + getDurationInMinutes(slotRange),
+    0
+  );
   // 2. Kiểm tra xem đã đủ thời gian tối thiểu chưa
   // Chỉ kiểm tra khi đã bắt đầu chọn ít nhất 1 ô
   const isUnderMinDuration = currentActiveSlots.length > 0 && totalMinutesSelected < minRequired;
@@ -449,7 +470,7 @@ const BookingCard: React.FC<BookingCardProps> = ({
 
       <div className="booking-section">
         <h4 className="booking-section-title time">Chọn khung giờ chi tiết</h4>
-        <div className={`"booking-section-note"${isUnderMinDuration ? "warning-text" : "note"}`}>
+        <div className={`booking-section-note ${isUnderMinDuration ? "warning-text" : "note"}`}>
           {isUnderMinDuration ? (
             <span className="error-msg">
               Bạn cần chọn thêm để đủ thời gian tối thiểu {minRequired} phút (Hiện tại: {totalMinutesSelected}p)
@@ -465,7 +486,11 @@ const BookingCard: React.FC<BookingCardProps> = ({
           }}
         >
           {isLoading ? (
-            <div className="loading-slots-shimmer" style={{ minHeight: "250px" }}>Đang tải khung giờ...</div>
+            <div className="time-pill-grid shimmer-container">
+              {Array.from({ length: 8 }).map((_, index) => (
+                <div key={index} className="time-pill shimmer-pill"></div>
+              ))}
+            </div>
           ) : (
           <div className="time-pill-grid">
             {availableSlots.map((slot) => {
@@ -519,90 +544,97 @@ const BookingCard: React.FC<BookingCardProps> = ({
         <h4 className="mini-cart-title">Hóa đơn</h4>
 
         <div className="mini-cart-list">
-          {Object.keys(cart)
-          .map(id => {
-            const item = cart[id];
-            if (item.slots.length === 0) return null;
+          <AnimatePresence mode="popLayout">
+            {Object.keys(cart)
+            .map(id => {
+              const item = cart[id];
+              if (item.slots.length === 0) return null;
 
-            const courtIdInCart = id.split('-')[0];
-            const courtInfo = courtsList.find(c => c.id === courtIdInCart);
-            const itemSlotStep = courtInfo?.slotStep || 30;
+              const courtIdInCart = id.split('-')[0];
+              const currentCourtData = courtsList.find(c => c.id === courtIdInCart);
 
-            const slotStepInHours = itemSlotStep / 60;
-            const currentCourtData = courtsList.find(c => c.name === item.courtName);
+              const itemCourtCost = item.slots.reduce((total, slotRange) => {
+                const slotTime = slotRange.split(' - ')[0];
+                const priceAtThisTime = getPriceForSlot(
+                  slotTime,
+                  item.date,
+                  item.basePrice,
+                  currentCourtData?.pricingRules || []
+                );
+                return total + (priceAtThisTime * getDurationInHours(slotRange));
+              }, 0);
 
-            const itemCourtCost = item.slots.reduce((total, slotRange) => {
-              const slotTime = slotRange.split(' - ')[0];
-              const priceAtThisTime = getPriceForSlot(
-                slotTime,
-                item.date,
-                item.basePrice,
-                currentCourtData?.pricingRules || []
-              );
-              return total + (priceAtThisTime * slotStepInHours);
-            }, 0);
+              const itemServicesCost = item.services.reduce((sum, sId) => {
+                const s = availableServices.find(x => x.id === sId);
+                if (!s) return sum;
+                const hours = item.slots.reduce((total, slotRange) => total + getDurationInHours(slotRange), 0);
+                return sum + (s.unit === 'hour' ? s.price * hours : s.price);
+              }, 0);
 
-            const itemServicesCost = item.services.reduce((sum, sId) => {
-              const s = availableServices.find(x => x.id === sId);
-              if (!s) return sum;
-              const hours = item.slots.length * slotStepInHours;
-              return sum + (s.unit === 'hour' ? s.price * hours : s.price);
-            }, 0);
+              const itemTotalPrice = itemCourtCost + itemServicesCost;
 
-            const itemTotalPrice = itemCourtCost + itemServicesCost;
+              const isEditing = id === `${selectedCourtId}-${selectedDate}`;
 
-            const isEditing = id === `${selectedCourtId}-${selectedDate}`;
+              return (
+                <motion.button 
+                  layout
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className={`mini-cart-item ${isEditing ? 'is-editing' : ''}`}
+                  key={id}
+                  onClick={() => handleEditCartItem(id)}
+                >
 
-            return (
-              <button className={`mini-cart-item ${isEditing ? 'is-editing' : ''}`}
-                key={id}
-                onClick={() => handleEditCartItem(id)}>
-
-                <div className="mini-cart-item-header">
-                  <span className="mini-cart-court-name">
-                    {isEditing && "✏️ "}
-                    {item.courtName} ({item.sportType})
-                  </span>
-                  <button className="remove-item-btn" onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemoveCartItem(id)
-                  }}
-                    title="Xóa sân này">✕</button>
-                </div>
-
-                <div className="mini-cart-item-details">
-                  <div className="info-row">
-                    <span className="info-label">Ngày đặt:</span>
-                    <span className="info-value">{item.date.split('-').reverse().join('/')}</span>
+                  <div className="mini-cart-item-header">
+                    <span className="mini-cart-court-name">
+                      {isEditing && "✏️ "}
+                      {item.courtName} ({item.sportType})
+                    </span>
+                    <button className="remove-item-btn" onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveCartItem(id)
+                    }}
+                      title="Xóa sân này">✕</button>
                   </div>
 
-                  <div className="info-row">
-                    <span className="info-label">Thời gian:</span>
-                    <span className="info-value">{item.slots.join(', ')}</span>
-                  </div>
-
-                  <div className="info-row">
-                    <span className="info-label">Tổng thời gian:</span>
-                    <span className="info-value">{(item.slots.length * itemSlotStep) / 60} giờ</span>
-                  </div>
-
-                  {item.services.length > 0 && (
+                  <div className="mini-cart-item-details">
                     <div className="info-row">
-                      <span className="info-label">Dịch vụ:</span>
-                      <span className="info-value service-list">
-                        {item.services.map(sId => availableServices.find(s => s.id === sId)?.name).join(', ')}
+                      <span className="info-label">Ngày đặt:</span>
+                      <span className="info-value">{item.date.split('-').reverse().join('/')}</span>
+                    </div>
+
+                    <div className="info-row">
+                      <span className="info-label">Thời gian:</span>
+                      <span className="info-value">{item.slots.join(', ')}</span>
+                    </div>
+
+                    <div className="info-row">
+                      <span className="info-label">Tổng thời gian:</span>
+                      <span className="info-value">
+                        {item.slots.reduce((total, slotRange) => total + getDurationInHours(slotRange), 0)} giờ
                       </span>
                     </div>
-                  )}
 
-                  <div className="info-row price-row-item">
-                    <span className="info-label">Giá:</span>
-                    <span className="info-value price-highlight">{itemTotalPrice.toLocaleString()}đ</span>
+                    {item.services.length > 0 && (
+                      <div className="info-row">
+                        <span className="info-label">Dịch vụ:</span>
+                        <span className="info-value service-list">
+                          {item.services.map(sId => availableServices.find(s => s.id === sId)?.name).join(', ')}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="info-row price-row-item">
+                      <span className="info-label">Giá:</span>
+                      <span className="info-value price-highlight">{itemTotalPrice.toLocaleString()}đ</span>
+                    </div>
                   </div>
-                </div>
-              </button>
-            );
-          })}
+                </motion.button>
+              );
+            })}
+          </AnimatePresence>
         </div>
 
         <div className="total-price-row">
