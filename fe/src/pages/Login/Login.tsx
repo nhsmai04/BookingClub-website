@@ -48,10 +48,6 @@ const Login: React.FC = () => {
         setIsLoading(true);
         const res = await loginApi(phone, password);
 
-        document.cookie = `csrf_token_fe=${encodeURIComponent(
-          res.csrfToken
-        )}; path=/; max-age=86400; SameSite=None; Secure`;
-        
         if (res) {
           await fetchMe();
           setMessage({

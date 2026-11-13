@@ -22,7 +22,6 @@ interface LoginResponse {
   access_token: string;
   phone: string;
   email: string;
-  csrfToken: string;
 }
 
 const loginApi = (
