@@ -93,16 +93,26 @@ export const refreshController = async (req, res) => {
 
     const result = await refreshTokenService(refreshToken);
 
+    // Keep the CSRF cookie paired with the token mirrored by the frontend.
+    // Refresh requests can arrive without a CSRF cookie after older sessions
+    // wrote the literal value "undefined".
+    const existingCsrfToken = req.cookies?.csrf_token;
+    const csrfToken = /^[a-f0-9]{64}$/i.test(existingCsrfToken || "")
+      ? existingCsrfToken
+      : cookieUtils.createCsrfToken();
+
     // set lại cookie
     await cookieUtils.setAuthCookies(
       res,
       result.userId,
       result.accessToken,
-      result.refreshToken
+      result.refreshToken,
+      csrfToken
     );
 
     return res.json({
       message: "Token refreshed",
+      csrfToken,
     });
 
   } catch (err) {

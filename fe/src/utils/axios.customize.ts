@@ -21,7 +21,12 @@ instance.interceptors.request.use(
         const method = (config.method || "get").toUpperCase();
 
         if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-            const csrfToken  = getCookie("csrf_token_fe");
+            // Read the same cookie the API validates. The old frontend mirror
+            // could become stale when the backend refreshed auth cookies.
+            const apiCsrfToken = getCookie("csrf_token");
+            const csrfToken = /^[a-f0-9]{64}$/i.test(apiCsrfToken)
+                ? apiCsrfToken
+                : getCookie("csrf_token_fe");
 
             if (csrfToken) {
                 config.headers = config.headers || {};
@@ -76,8 +81,11 @@ instance.interceptors.response.use(
             originalRequest._retry = true;
 
             try {
-                await instance.post("/api/v1/refresh", {}, {
-                });
+                const refreshResponse = await instance.post("/api/v1/refresh", {}, {});
+                if (refreshResponse?.csrfToken) {
+                    const secure = window.location.protocol === "https:" ? "; Secure" : "";
+                    document.cookie = `csrf_token_fe=${encodeURIComponent(refreshResponse.csrfToken)}; path=/; max-age=604800; SameSite=Lax${secure}`;
+                }
 
                 return instance(originalRequest);
 
