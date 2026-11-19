@@ -71,10 +71,13 @@ const CheckoutPage: React.FC = () => {
         );
 
         // tính tổng tiền
-        const total = detailsWithPrice.reduce(
-          (sum, item) => sum + item.price,
-          0
-        );
+        const total = detailsWithPrice.reduce((sum, item) => {
+          const serviceTotal = (item.services || []).reduce(
+            (serviceSum: number, service: any) => serviceSum + (Number(service.price) || 0),
+            0
+          );
+          return sum + (Number(item.price) || 0) + serviceTotal;
+        }, 0);
 
         setBookingDetailsWithPrice(detailsWithPrice);
         setTotalPrice(total);

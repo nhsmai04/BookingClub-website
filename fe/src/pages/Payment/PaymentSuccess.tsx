@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { CheckCircle } from "lucide-react";
 import "./PaymentResult.css";
@@ -5,6 +6,10 @@ import "./PaymentResult.css";
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    sessionStorage.removeItem("pendingBooking");
+  }, []);
 
   // Đọc params từ URL do Backend redirect trả về
   const bookingStatus = searchParams.get("bookingStatus") || "Thành công";

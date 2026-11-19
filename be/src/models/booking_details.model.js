@@ -26,6 +26,10 @@ const bookingDetailsSchema = new mongoose.Schema({
     end_time:{
         type: String,
         required: true
+    },
+    services: {
+        type: [{ id: String, name: String, price: Number }],
+        default: []
     }
 });
 
