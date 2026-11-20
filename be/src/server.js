@@ -69,7 +69,7 @@ const startServer = async () => {
     } catch (err) {
       console.error(err);
     }
-  }, 60 * 1000);
+  }, 10 * 1000);
 
   setInterval(async () => {
     try {
@@ -78,7 +78,7 @@ const startServer = async () => {
     } catch (err) {
       console.error(err);
     }
-  }, 60 * 60 * 1000);
+  }, 60 * 1000);
 };
 
 startServer().catch((err) => {

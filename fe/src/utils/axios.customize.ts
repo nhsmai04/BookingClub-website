@@ -21,7 +21,9 @@ instance.interceptors.request.use(
         const method = (config.method || "get").toUpperCase();
 
         if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-            const csrfToken  = getCookie("csrf_token_fe");
+            // Read the same cookie the API validates so there is only one
+            // CSRF token value to keep in sync.
+            const csrfToken = getCookie("csrf_token");
 
             if (csrfToken) {
                 config.headers = config.headers || {};
@@ -76,8 +78,7 @@ instance.interceptors.response.use(
             originalRequest._retry = true;
 
             try {
-                await instance.post("/api/v1/refresh", {}, {
-                });
+                await instance.post("/api/v1/refresh", {}, {});
 
                 return instance(originalRequest);
 

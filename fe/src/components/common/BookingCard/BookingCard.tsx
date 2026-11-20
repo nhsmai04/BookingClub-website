@@ -39,6 +39,9 @@ interface CourtOption {
 interface BookingCardProps {
   complexId: string;
   complexName: string;
+  complexAddress: string;
+  complexImages: string[];
+  complexRating: number;
   courtsList: CourtOption[];
   courtId?: string;
   onClearSelection: () => void;
@@ -80,6 +83,9 @@ const availableServices: ServiceItem[] = [
 const BookingCard: React.FC<BookingCardProps> = ({
   complexId,
   complexName,
+  complexAddress,
+  complexImages,
+  complexRating,
   courtsList,
   courtId,
   onClearSelection
@@ -375,6 +381,10 @@ const BookingCard: React.FC<BookingCardProps> = ({
 
     const bookingPayload = {
       complex_id: complexId,
+      complex_name: complexName,
+      complex_address: complexAddress,
+      complex_images: complexImages,
+      complex_rating: complexRating,
       booking_date: selectedDate,    
       total_price: globalTotalPrice,
       booking_details: formattedBookingDetails,

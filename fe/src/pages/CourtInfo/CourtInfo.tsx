@@ -166,6 +166,9 @@ const CourtInfo = () => {
         <BookingCard
           complexId={court.id}
           complexName={court.name}
+          complexAddress={court.address}
+          complexImages={court.images}
+          complexRating={court.rating ? court.rating : 0}
           courtsList={court.subFields} 
           courtId={selectedCourtId}
           onClearSelection={() => setSelectedCourtId(undefined)}

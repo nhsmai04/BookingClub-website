@@ -6,6 +6,8 @@ import { generateQR } from "../utils/qrcode.js";
 import BookingDetails from "../models/booking_details.model.js"
 import dayjs from "dayjs";
 import TimeSlot from "../models/time_slot.model.js"
+import { BOOKING_HOLD_MINUTES } from "../config/booking.constants.js";
+import { releaseLockedTimeSlots } from "./time-slot.service.js";
 
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
@@ -46,10 +48,10 @@ export const createVnpayPayment = async (bookingId, userId) => {
     }
 
     const txnRef = `${booking._id}-${Date.now()}`;
-
-    const expireMinutes = Number(process.env.VNPAY_EXPIRE_MINUTES || 60);
-    const expireDate = new Date();
-    expireDate.setMinutes(expireDate.getMinutes() + expireMinutes);
+    const expireDate = new Date(booking.createdAt.getTime() + BOOKING_HOLD_MINUTES * 60 * 1000);
+    if (expireDate <= new Date()) {
+        throw new Error("Thời gian giữ sân đã hết. Vui lòng đặt lại khung giờ.");
+    }
 
     let payment = await Payment.findOne({
         booking_id: booking._id,
@@ -145,9 +147,23 @@ const updateTimeSlotStatusToBooked = async (bookingId) => {
 };
 
 export const handleVnpayReturn = async (query) => {
+    const vnpay = new VNPay({
+        tmnCode: process.env.VNPAY_TMN_CODE,
+        secureSecret: process.env.VNPAY_SECURE_SECRET,
+        vnpayHost: process.env.VNPAY_HOST,
+        testMode: true,
+        hashAlgorithm: "SHA512",
+        loggerFn: ignoreLogger,
+    });
+    const verification = vnpay.verifyReturnUrl(query);
+    if (!verification.isVerified) {
+        throw new Error("Phản hồi thanh toán VNPay không hợp lệ");
+    }
+
     const txnRef = query.vnp_TxnRef;
     const bookingId = txnRef.split("-")[0];
     const responseCode = query.vnp_ResponseCode;
+    const paymentSucceeded = verification.isSuccess && query.vnp_TransactionStatus === "00";
 
     const vnpayMessages = {
         "00": "Giao dịch thành công",
@@ -182,6 +198,29 @@ export const handleVnpayReturn = async (query) => {
         throw new Error("Payment not found");
     }
 
+    if (payment.vnpay_details?.vnp_TxnRef !== txnRef) {
+        throw new Error("Mã giao dịch VNPay không khớp");
+    }
+
+    const expectedAmount = Number(payment.amount.toString()) * 100;
+    if (Number(query.vnp_Amount) !== expectedAmount) {
+        throw new Error("Số tiền thanh toán VNPay không khớp với đơn đặt sân");
+    }
+
+    if (booking.status === "confirmed" && payment.status === "Completed") {
+        return {
+            success: true,
+            code: query.vnp_ResponseCode,
+            message: "Giao dịch đã được xác nhận trước đó",
+            paymentStatus: payment.status,
+            bookingStatus: booking.status,
+        };
+    }
+
+    if (booking.status !== "pending" || payment.status !== "Pending" || payment.expired_at <= new Date()) {
+        throw new Error("Thời gian thanh toán đã hết hoặc đơn đặt sân không còn hiệu lực");
+    }
+
     payment.vnpay_details = {
         ...payment.vnpay_details,
         vnp_TxnRef: query.vnp_TxnRef,
@@ -195,55 +234,50 @@ export const handleVnpayReturn = async (query) => {
     };
     await payment.save();
 
-    if (responseCode === "00") {
+    let finalBookingStatus = booking.status;
+    if (paymentSucceeded) {
+        const confirmedBooking = await Booking.findOneAndUpdate(
+            {
+                _id: bookingId,
+                status: "pending",
+                createdAt: { $gte: new Date(Date.now() - BOOKING_HOLD_MINUTES * 60 * 1000) },
+            },
+            {
+                $set: {
+                    status: "confirmed",
+                    qr_code_url: await generateQR(bookingId),
+                },
+            },
+            { new: true }
+        );
         payment.status = "Completed";
-        booking.status = "confirmed";
-        booking.qr_code_url = await generateQR(bookingId);
+        await payment.save();
+
+        if (!confirmedBooking) {
+            return {
+                success: false,
+                code: responseCode,
+                message: "Thanh toán đã được ghi nhận nhưng thời gian giữ sân đã hết. Vui lòng liên hệ hỗ trợ.",
+                paymentStatus: payment.status,
+                bookingStatus: (await Booking.findById(bookingId))?.status || "cancelled",
+            };
+        }
+
+        finalBookingStatus = confirmedBooking.status;
         await updateTimeSlotStatusToBooked(bookingId);
     } else {
         payment.status = "Failed";
+        await payment.save();
     }
 
-    await payment.save();
-    await booking.save();
-
     return {
-        success: responseCode === "00",
+        success: paymentSucceeded,
         code: responseCode,
         message,
         paymentStatus: payment.status,
-        bookingStatus: booking.status
+        bookingStatus: finalBookingStatus
     };
 }
-
-const deleteLockedTimeSlots = async (bookingId) => {
-  const bookingDetails = await BookingDetails.find({
-    booking_id: bookingId,
-  });
-
-  const deleteConditions = bookingDetails.map((detail) => {
-    const { start, end } = getVietnamDayRange(detail.play_date);
-
-    return {
-      sub_field_id: detail.sub_field_id,
-
-      booked_date: {
-        $gte: start,
-        $lte: end,
-      },
-
-      time: `${detail.start_time} - ${detail.end_time}`,
-
-      status: "Locked",
-    };
-  });
-
-  if (!deleteConditions.length) return;
-
-  await TimeSlot.deleteMany({
-    $or: deleteConditions,
-  });
-};
 
 // job chạy nền kiểm tra các payment đã hết hạn chưa -> nếu hết hạn thì xem như hủy booking
 export const cancelExpiredBookings = async () => {
@@ -252,7 +286,7 @@ export const cancelExpiredBookings = async () => {
 
     // 1. Booking chưa payment
     // quá 10 phút
-    const expiredTime = new Date(now.getTime() - 10 * 60 * 1000);
+    const expiredTime = new Date(now.getTime() - BOOKING_HOLD_MINUTES * 60 * 1000);
 
     // lấy booking sắp bị cancel
     const expiredBookings = await Booking.find({
@@ -270,12 +304,18 @@ export const cancelExpiredBookings = async () => {
 
     // cancel + delete slot
     for (const booking of expiredBookings) {
+        const cancelledBooking = await Booking.findOneAndUpdate(
+            { _id: booking._id, status: "pending" },
+            { $set: { status: "cancelled" } },
+            { returnDocument: "after" }
+        );
+        if (!cancelledBooking) continue;
 
-        booking.status = "cancelled";
-
-        await booking.save();
-
-        await deleteLockedTimeSlots(booking._id);
+        await Payment.updateMany(
+            { booking_id: booking._id, payment_method: "VNPAY", status: "Pending" },
+            { $set: { status: "Expired" } }
+        );
+        await releaseLockedTimeSlots(booking._id);
     }
 
     // 2. Payment hết hạn
@@ -313,8 +353,6 @@ export const cancelExpiredBookings = async () => {
 
         if (!booking) continue;
 
-        await deleteLockedTimeSlots(
-            booking._id
-        );
+        await releaseLockedTimeSlots(booking._id);
     }
 };

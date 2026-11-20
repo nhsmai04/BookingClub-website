@@ -160,6 +160,37 @@ const getSportComplexDetailsService = async (slug) => {
     { $match: { slug } },
     {
       $lookup: {
+        from: Review.collection.name,
+        let: { complexId: "$_id" },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$complex_id", "$$complexId"] } } },
+          {
+            $group: {
+              _id: null,
+              totalReviews: { $sum: 1 },
+              avgRating: { $avg: "$rating" },
+            },
+          },
+        ],
+        as: "reviewStats",
+      },
+    },
+    {
+      $unwind: {
+        path: "$reviewStats",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $addFields: {
+        rating: {
+          $round: [{ $ifNull: ["$reviewStats.avgRating", 0] }, 1],
+        },
+        totalReviews: { $ifNull: ["$reviewStats.totalReviews", 0] },
+      },
+    },
+    {
+      $lookup: {
         from: "users",
         let: { ownerId: "$owner_id" },
         pipeline: [

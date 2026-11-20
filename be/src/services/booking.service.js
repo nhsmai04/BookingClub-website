@@ -12,6 +12,8 @@ import dayjs from "dayjs";
 import TimeSlot from "../models/time_slot.model.js"
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
+import { releaseLockedTimeSlots } from "./time-slot.service.js";
+import { BOOKING_SERVICE_CATALOG } from "../config/booking.constants.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -55,6 +57,7 @@ export const createBooking = async (userId, payload) => {
       const detailsToInsert = [];
 
       let totalPrice = 0;
+      const chargedFlatServices = new Set();
 
       for (const item of booking_details) {
         if (!item.sub_field_id) {
@@ -143,8 +146,27 @@ export const createBooking = async (userId, payload) => {
         }
 
         const price = await CalculatePrice(item.sub_field_id, item.play_date, item.startTime, item.endTime);
+        const durationHours = duration / 60;
+        const serviceGroup = `${item.sub_field_id}:${item.play_date}`;
+        const services = (item.services || []).map((service) => {
+          const serviceId = typeof service === "string" ? service : service?.id;
+          if (!Object.hasOwn(BOOKING_SERVICE_CATALOG, serviceId)) {
+            throw new Error(`Unknown booking service: ${serviceId}`);
+          }
+          const catalogItem = BOOKING_SERVICE_CATALOG[serviceId];
 
-        totalPrice += price;
+          let servicePrice = catalogItem.price * durationHours;
+          if (catalogItem.unit === "flat") {
+            const flatKey = `${serviceGroup}:${serviceId}`;
+            servicePrice = chargedFlatServices.has(flatKey) ? 0 : catalogItem.price;
+            chargedFlatServices.add(flatKey);
+          }
+
+          return { id: serviceId, name: catalogItem.name, price: servicePrice };
+        });
+        const servicesPrice = services.reduce((sum, service) => sum + service.price, 0);
+
+        totalPrice += price + servicesPrice;
 
         detailsToInsert.push({
           sub_field_id: item.sub_field_id,
@@ -152,6 +174,7 @@ export const createBooking = async (userId, payload) => {
           price: price,
           start_time: item.startTime,
           end_time: item.endTime,
+          services,
         });
       }
 
@@ -232,6 +255,7 @@ export const cancelBookingBeforePay = async (bookingId, userId) => {
 
   booking.status = "cancelled";
   await booking.save();
+  await releaseLockedTimeSlots(booking._id);
 
   return booking;
 };
